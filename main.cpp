@@ -54,7 +54,7 @@ int main(int argc, const char* argv[])
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+    SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 600, window_flags);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
@@ -151,19 +151,21 @@ int main(int argc, const char* argv[])
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        //glUseProgram(0); // You may want this if using this code in an OpenGL 3+ context where shaders may be bound
-        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
         // 渲染 stanford bunny
 
         glEnable(GL_VERTEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
-        glLoadIdentity();
+        glPushMatrix();
 
-        gluPerspective(20, 1, 0.5, 2);
+        // 自适应视口变换
+        auto w = io.DisplaySize.x, h = io.DisplaySize.y;
+        auto vw = std::min(w, h) > 800 ? 800 : std::min(w, h); // viewport width
+        glViewport(w - vw, (h - vw)/2, vw, vw);
+        gluPerspective(15, 1, 0.5, 2);
         gluLookAt(
             0.0f, 0.0f, 1.0f,
-            0.0f, 0.07f, 0.0f,
+            0.0f, 0.10f, 0.0f,
             0.0f, 1.0f, 0.0f
         );
         glColor3f(0.0, 0.0, 0.0);
@@ -175,6 +177,11 @@ int main(int argc, const char* argv[])
             GL_UNSIGNED_INT,
             faces.data()
         );
+
+        glPopMatrix();
+
+        // 渲染 imgui
+        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
         SDL_GL_SwapWindow(window);
     }

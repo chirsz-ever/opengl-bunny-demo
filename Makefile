@@ -15,20 +15,20 @@
 #CXX = clang++
 
 EXE = bunny-ui
-SOURCES = main.cpp
+SOURCES = main.cpp utils.cpp
 SOURCES += imgui/imgui_impl_sdl.cpp imgui/imgui_impl_opengl2.cpp
 SOURCES += imgui/imgui.cpp imgui/imgui_demo.cpp imgui/imgui_draw.cpp imgui/imgui_widgets.cpp
 OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 UNAME_S := $(shell uname -s)
 
 CXXFLAGS = -Iimgui
-CXXFLAGS += -Wall -Wformat
+CXXFLAGS += -Wall -Wformat -std=c++11
 
 ifeq ($(DEBUG), 1)
 	CXXFLAGS += -g
 endif
 
-LIBS =
+LIBS = -lGLU
 
 ##---------------------------------------------------------------------
 ## BUILD FLAGS PER PLATFORM

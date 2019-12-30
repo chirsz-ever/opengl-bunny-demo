@@ -9,21 +9,43 @@
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl2.h"
+#include "utils.h"
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
+#include <GL/glu.h>
 
 // Main code
-int main(int, char**)
+int main(int argc, const char* argv[])
 {
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
     // depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to latest version of SDL is recommended!)
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
-    {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         printf("Error: %s\n", SDL_GetError());
         return -1;
     }
+
+    // 加载 Stanford Bunny 数据
+    std::vector<GLfloat> vertices;
+    std::vector<GLuint> faces;
+    // GLuint IBO;
+    const char *filename = "bunny.ply";
+    if (argc >= 2) {
+        filename = argv[1];
+    }
+    load_bunny_data(filename, vertices, faces);
+
+    printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size()/3, faces.size()/3);
+
+    // glGenBuffers(1, &IBO);
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    // glBufferData(
+    //     GL_ELEMENT_ARRAY_BUFFER,
+    //     faces.size() * sizeof(GLuint),
+    //     faces.data(),
+    //     GL_STATIC_DRAW
+    // );
 
     // Setup window
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -74,16 +96,14 @@ int main(int, char**)
 
     // Main loop
     bool done = false;
-    while (!done)
-    {
+    while (!done) {
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
+        while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
             if (event.type == SDL_QUIT)
                 done = true;
@@ -93,10 +113,6 @@ int main(int, char**)
         ImGui_ImplOpenGL2_NewFrame();
         ImGui_ImplSDL2_NewFrame(window);
         ImGui::NewFrame();
-
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
 
         // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
         {
@@ -122,8 +138,7 @@ int main(int, char**)
         }
 
         // 3. Show another simple window.
-        if (show_another_window)
-        {
+        if (show_another_window) {
             ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
             ImGui::Text("Hello from another window!");
             if (ImGui::Button("Close Me"))
@@ -135,9 +150,32 @@ int main(int, char**)
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         //glUseProgram(0); // You may want this if using this code in an OpenGL 3+ context where shaders may be bound
         ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+
+        // 渲染 stanford bunny
+
+        glEnable(GL_VERTEX_ARRAY);
+        glEnable(GL_DEPTH_TEST);
+        glLoadIdentity();
+
+        gluPerspective(20, 1, 0.5, 2);
+        gluLookAt(
+            0.0f, 0.0f, 1.0f,
+            0.0f, 0.07f, 0.0f,
+            0.0f, 1.0f, 0.0f
+        );
+        glColor3f(0.0, 0.0, 0.0);
+
+        glVertexPointer(3, GL_FLOAT, 0, vertices.data());
+        glDrawElements(
+            GL_TRIANGLES,
+            faces.size(),
+            GL_UNSIGNED_INT,
+            faces.data()
+        );
+
         SDL_GL_SwapWindow(window);
     }
 

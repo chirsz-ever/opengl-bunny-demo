@@ -6,6 +6,7 @@
 // **Prefer using the code in the example_sdl_opengl3/ folder**
 // See imgui_impl_sdl.cpp for details.
 
+#include <GL/glew.h>
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl2.h"
@@ -22,30 +23,9 @@ int main(int argc, const char* argv[])
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
     // depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to latest version of SDL is recommended!)
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
-        printf("Error: %s\n", SDL_GetError());
+        fprintf(stderr, "Error: %s\n", SDL_GetError());
         return -1;
     }
-
-    // 加载 Stanford Bunny 数据
-    std::vector<GLfloat> vertices;
-    std::vector<GLuint> faces;
-    // GLuint IBO;
-    const char *filename = "bunny.ply";
-    if (argc >= 2) {
-        filename = argv[1];
-    }
-    load_bunny_data(filename, vertices, faces);
-
-    printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size()/3, faces.size()/3);
-
-    // glGenBuffers(1, &IBO);
-    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    // glBufferData(
-    //     GL_ELEMENT_ARRAY_BUFFER,
-    //     faces.size() * sizeof(GLuint),
-    //     faces.data(),
-    //     GL_STATIC_DRAW
-    // );
 
     // Setup window
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -58,6 +38,47 @@ int main(int argc, const char* argv[])
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    // Setup GLEW
+    //glewExperimental = GL_TRUE;
+    if (glewInit() != GLEW_OK) {
+        fprintf(stderr, "Failed to initalized GLEW\n");
+        return -1;
+    }
+
+    // 加载 Stanford Bunny 数据
+    std::vector<GLfloat> vertices;
+    std::vector<GLuint> faces;
+    GLuint VBO, IBO;
+    const char *filename = "bunny.ply";
+    if (argc >= 2) {
+        filename = argv[1];
+    }
+    load_bunny_data(filename, vertices, faces);
+
+    printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size()/3, faces.size()/3);
+
+    // 顶点缓冲区对象
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        vertices.size() * sizeof(GLfloat),
+        vertices.data(),
+        GL_STATIC_DRAW
+    );
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    // 顶点索引缓冲区对象
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        faces.size() * sizeof(GLuint),
+        faces.data(),
+        GL_STATIC_DRAW
+    );
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -231,15 +252,20 @@ int main(int argc, const char* argv[])
         //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
         glMaterialf (GL_FRONT, GL_SHININESS,  mat_shininess);
 
-        glVertexPointer(3, GL_FLOAT, 0, vertices.data());
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glVertexPointer(3, GL_FLOAT, 0, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
         glDrawElements(
             GL_TRIANGLES,
             faces.size(),
             GL_UNSIGNED_INT,
-            faces.data()
+            nullptr
         );
 
+        // 还原状态
         glPopMatrix();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         // 渲染 imgui
         ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());

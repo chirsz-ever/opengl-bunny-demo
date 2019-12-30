@@ -15,8 +15,8 @@
 #CXX = clang++
 
 EXE = bunny-ui
-SOURCES = main.cpp utils.cpp imgui_demo.cpp
-IMGUI_SOURCES = imgui.cpp imgui_draw.cpp imgui_widgets.cpp
+SOURCES = main.cpp utils.cpp
+IMGUI_SOURCES = imgui.cpp imgui_draw.cpp imgui_widgets.cpp imgui_demo.cpp
 IMGUI_SOURCES += imgui_impl_sdl.cpp imgui_impl_opengl2.cpp
 OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 IMGUI_OBJS = $(patsubst %.cpp,imgui/%.o,$(IMGUI_SOURCES))
@@ -81,7 +81,7 @@ $(EXE): $(OBJS) $(IMGUI_OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
 
 clean:
-	rm -f $(EXE) $(OBJS)
+	rm -f $(EXE) $(OBJS) imgui.ini
 
-cleanall:
+cleanall: clean
 	rm -f $(EXE) $(OBJS) $(IMGUI_OBJS)

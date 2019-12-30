@@ -54,7 +54,7 @@ int main(int argc, const char* argv[])
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 600, window_flags);
+    SDL_Window* window = SDL_CreateWindow("Stanford Bunny", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 600, window_flags);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
@@ -90,9 +90,25 @@ int main(int argc, const char* argv[])
     //IM_ASSERT(font != NULL);
 
     // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    GLfloat clear_color[4] = {0.70f, 0.85f, 0.93f, 1.00f};
+    GLfloat global_ambient[4] = { 0.1, 0.1, 0.1, 0.0 };
+
+    GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+    GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
+    GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    GLfloat mat_ambient[4] = {0.105882, 0.058824, 0.113725, 1.000000}; // 环境光
+    GLfloat mat_diffuse[4] = {0.427451, 0.470588, 0.541176, 1.000000}; // 漫反射光
+    GLfloat mat_specular[4] = {0.333333, 0.333333, 0.521569, 1.000000}; // 镜面反射光
+
+    GLfloat light0_position[4] = { 0.23, 0.23, 0.23, 1.0 };
+    GLfloat light1_position[4] = { -0.23, 0.23, 0.23, 1.0 };
+
+    GLfloat mat_shininess = 9.846150f;
 
     // Main loop
     bool done = false;
@@ -114,48 +130,73 @@ int main(int argc, const char* argv[])
         ImGui_ImplSDL2_NewFrame(window);
         ImGui::NewFrame();
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
+        // UI 设计代码
         {
-            static float f = 0.0f;
-            static int counter = 0;
+            ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(340, 240), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Control");
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
+            {
+                if (ImGui::BeginTabItem("Global"))
+                {
+                    ImGui::ColorEdit3("clear color", clear_color);
+                    ImGui::ColorEdit3("global ambient", global_ambient);
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Material"))
+                {
+                    ImGui::ColorEdit4("ambient", mat_ambient);
+                    ImGui::ColorEdit4("diffuse", mat_diffuse);
+                    ImGui::ColorEdit4("specular", mat_specular);
+                    ImGui::SliderFloat("shininess", &mat_shininess, 0, 128);
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Light0"))
+                {
+                    ImGui::ColorEdit4("ambient", light0_ambient);
+                    ImGui::ColorEdit4("diffuse", light0_diffuse);
+                    ImGui::ColorEdit4("specular", light0_specular);
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Light1"))
+                {
+                    ImGui::ColorEdit4("ambient", light1_ambient);
+                    ImGui::ColorEdit4("diffuse", light1_diffuse);
+                    ImGui::ColorEdit4("specular", light1_specular);
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+            ImGui::End();
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::SetNextWindowPos(ImVec2(10, io.DisplaySize.y - 10), ImGuiCond_Always, ImVec2(0.0, 1.0));
+            ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+            ImGui::Begin("Example: Simple overlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+            {
+                if (ImGui::IsMousePosValid())
+                    ImGui::Text("Mouse Position: %5.1f,%5.1f)", io.MousePos.x, io.MousePos.y);
+                else
+                    ImGui::Text("Mouse Position: %-13s", "<invalid>");
+                ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
+            }
             ImGui::End();
         }
 
-        // 3. Show another simple window.
-        if (show_another_window) {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
 
         // Rendering
         ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 渲染 stanford bunny
-
         glEnable(GL_VERTEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
+        glEnable(GL_LIGHT1);
+
         glPushMatrix();
 
         // 自适应视口变换
@@ -168,7 +209,27 @@ int main(int argc, const char* argv[])
             0.0f, 0.10f, 0.0f,
             0.0f, 1.0f, 0.0f
         );
-        glColor3f(0.0, 0.0, 0.0);
+
+        // 光源设置
+        // 0 号光源
+        glLightfv (GL_LIGHT0, GL_AMBIENT,  (float*)&light0_ambient);
+        glLightfv (GL_LIGHT0, GL_DIFFUSE,  (float*)&light0_diffuse);
+        glLightfv (GL_LIGHT0, GL_SPECULAR, (float*)&light0_specular);
+        glLightfv (GL_LIGHT0, GL_POSITION, (float*)&light0_position);
+        // 1 号光源
+        glLightfv (GL_LIGHT1, GL_AMBIENT,  (float*)&light1_ambient);
+        glLightfv (GL_LIGHT1, GL_DIFFUSE,  (float*)&light1_diffuse);
+        glLightfv (GL_LIGHT1, GL_SPECULAR, (float*)&light1_specular);
+        glLightfv (GL_LIGHT1, GL_POSITION, (float*)&light1_position);
+        // 全局环境光
+        glLightModelfv (GL_LIGHT_MODEL_AMBIENT, (float*)&global_ambient);
+
+        // 材质设置
+        glMaterialfv(GL_FRONT, GL_AMBIENT,    (float*)&mat_ambient);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE,    (float*)&mat_diffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR,   (float*)&mat_specular);
+        //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
+        glMaterialf (GL_FRONT, GL_SHININESS,  mat_shininess);
 
         glVertexPointer(3, GL_FLOAT, 0, vertices.data());
         glDrawElements(

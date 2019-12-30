@@ -1,0 +1,9 @@
+*.o
+*.obj
+*.exe
+
+## Unix executables
+bunny-ui
+
+## Dear ImGui Ini files
+imgui.ini

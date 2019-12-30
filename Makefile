@@ -73,6 +73,9 @@ endif
 all: $(EXE)
 	@echo Build complete for $(ECHO_MESSAGE)
 
+run: all
+	./$(EXE)
+
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
 

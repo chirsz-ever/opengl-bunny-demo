@@ -68,13 +68,6 @@ int main(int argc, const char* argv[])
 
     printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size() / 3, faces.size() / 3);
 
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        vertices[i] *= 10;
-        if (i % 3 == 1) {
-            vertices[i] -= 1;
-        }
-    }
-
     // 顶点缓冲区对象
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -268,6 +261,7 @@ int main(int argc, const char* argv[])
         // 渲染 stanford bunny
         glEnable(GL_VERTEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_RESCALE_NORMAL);
         glEnable(GL_LIGHTING);
         glEnable(GL_LIGHT0);
         glEnable(GL_LIGHT1);
@@ -314,6 +308,8 @@ int main(int argc, const char* argv[])
 
         // 水平旋转，注意 Y 轴向上
         glRotatef(horizonal_angle, 0, 1, 0);
+        glScalef(10.0f, 10.0f, 10.0f);
+        glTranslatef(0.0f, -0.1f, 0.0f);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glVertexPointer(3, GL_FLOAT, 0, nullptr);
@@ -326,6 +322,7 @@ int main(int argc, const char* argv[])
         );
 
         // 还原状态
+        glDisable(GL_RESCALE_NORMAL);
         glPopMatrix();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

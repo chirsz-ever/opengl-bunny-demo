@@ -13,11 +13,18 @@
 #include "utils.h"
 #include "materials.h"
 #include <stdio.h>
+#include <cmath>
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <GL/glu.h>
 
 static void draw_coordinate();
+
+// Degree to Radian
+inline float D2R(float degree)
+{
+    return degree * M_PI / 180.0f;
+}
 
 // Main code
 int main(int argc, const char* argv[])
@@ -59,7 +66,7 @@ int main(int argc, const char* argv[])
     }
     load_bunny_data(filename, vertices, faces);
 
-    printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size()/3, faces.size()/3);
+    printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size() / 3, faces.size() / 3);
 
     for (size_t i = 0; i < vertices.size(); ++i) {
         vertices[i] *= 10;
@@ -141,6 +148,7 @@ int main(int argc, const char* argv[])
     GLfloat coord_color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 
     float horizonal_angle = 0.0f;
+    float pitch_angle = 90.0f;  // 与 y 轴正方向夹角，单位度
 
     // Main loop
     bool done = false;
@@ -157,6 +165,31 @@ int main(int argc, const char* argv[])
                 done = true;
         }
 
+        // 自适应视口变换
+        auto w = io.DisplaySize.x, h = io.DisplaySize.y;
+        auto vw = std::min(w, h) > 800 ? 800 : std::min(w, h); // viewport width
+
+        // 更新姿态
+        if (ImGui::GetMousePos().x > w - vw) {
+            if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                // 偏航角
+                auto dl = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+                horizonal_angle += dl.x;
+                ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+            }
+            if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+                // 俯仰角
+                auto dr = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+                pitch_angle -= dr.y;
+                if (pitch_angle >= 360) {
+                    pitch_angle -= 360;
+                } else if (pitch_angle <= 0) {
+                    pitch_angle += 360;
+                }
+                ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
+            }
+        }
+
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL2_NewFrame();
         ImGui_ImplSDL2_NewFrame(window);
@@ -168,10 +201,8 @@ int main(int argc, const char* argv[])
             ImGui::SetNextWindowSize(ImVec2(340, 240), ImGuiCond_FirstUseEver);
             ImGui::Begin("Control");
 
-            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None))
-            {
-                if (ImGui::BeginTabItem("Global"))
-                {
+            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
+                if (ImGui::BeginTabItem("Global")) {
                     ImGui::ColorEdit3("clear color", clear_color);
                     ImGui::ColorEdit3("global ambient", global_ambient);
                     ImGui::Checkbox("draw coordinate", &draw_coord);
@@ -180,8 +211,7 @@ int main(int argc, const char* argv[])
                     }
                     ImGui::EndTabItem();
                 }
-                if (ImGui::BeginTabItem("Material"))
-                {
+                if (ImGui::BeginTabItem("Material")) {
                     ImGui::ColorEdit4("ambient", mat.ambient);
                     ImGui::ColorEdit4("diffuse", mat.diffuse);
                     ImGui::ColorEdit4("specular", mat.specular);
@@ -189,7 +219,7 @@ int main(int argc, const char* argv[])
                     ImGui::Separator();
                     ImGui::Text("built-in materials");
                     int count = 1;
-                    for (const Material& m: materials) {
+                    for (const Material& m : materials) {
                         if (ImGui::Button(m.name)) {
                             mat = m;
                         }
@@ -199,15 +229,13 @@ int main(int argc, const char* argv[])
                     }
                     ImGui::EndTabItem();
                 }
-                if (ImGui::BeginTabItem("Light0"))
-                {
+                if (ImGui::BeginTabItem("Light0")) {
                     ImGui::ColorEdit4("ambient", light0_ambient);
                     ImGui::ColorEdit4("diffuse", light0_diffuse);
                     ImGui::ColorEdit4("specular", light0_specular);
                     ImGui::EndTabItem();
                 }
-                if (ImGui::BeginTabItem("Light1"))
-                {
+                if (ImGui::BeginTabItem("Light1")) {
                     ImGui::ColorEdit4("ambient", light1_ambient);
                     ImGui::ColorEdit4("diffuse", light1_diffuse);
                     ImGui::ColorEdit4("specular", light1_specular);
@@ -246,15 +274,16 @@ int main(int argc, const char* argv[])
 
         glPushMatrix();
 
-        // 自适应视口变换
-        auto w = io.DisplaySize.x, h = io.DisplaySize.y;
-        auto vw = std::min(w, h) > 800 ? 800 : std::min(w, h); // viewport width
-        glViewport(w - vw, (h - vw)/2, vw, vw);
+        glViewport(w - vw, (h - vw) / 2, vw, vw);
         gluPerspective(60, 1, 0.5, 12);
+
+        float cop_x = 2.0f * sin(D2R(pitch_angle));
+        float cop_y = 2.0f * cos(D2R(pitch_angle));
+        float cop_z = 2.0f * sin(D2R(pitch_angle));
         gluLookAt(
-            1.5f, 1.0f, 1.5f,
-            0.0f, 0.10f, 0.0f,
-            0.0f, 1.0f, 0.0f
+            cop_x, cop_y, cop_z,
+            0.0f, 0.0f, 0.0f,
+            0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
         );
 
         // 光源设置
@@ -283,10 +312,7 @@ int main(int argc, const char* argv[])
             draw_coordinate();
         }
 
-        if (ImGui::GetMousePos().x > w - vw && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-            horizonal_angle += ImGui::GetMouseDragDelta().x;
-            ImGui::ResetMouseDragDelta();
-        }
+        // 水平旋转，注意 Y 轴向上
         glRotatef(horizonal_angle, 0, 1, 0);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -332,6 +358,10 @@ void draw_coordinate()
         glVertex3f(-10.0, 1.0, 0.0);
         glVertex3f(10.0, 0.0, 1.0);
         glVertex3f(-10.0, 0.0, 1.0);
+        glVertex3f(10.0, -1.0, 0.0);
+        glVertex3f(-10.0, -1.0, 0.0);
+        glVertex3f(10.0, 0.0, -1.0);
+        glVertex3f(-10.0, 0.0, -1.0);
 
         glVertex3f(0.0, 10.0, 0.0);
         glVertex3f(0.0, -10.0, 0.0);
@@ -339,6 +369,10 @@ void draw_coordinate()
         glVertex3f(1.0, -10.0, 0.0);
         glVertex3f(0.0, 10.0, 1.0);
         glVertex3f(0.0, -10.0, 1.0);
+        glVertex3f(-1.0, 10.0, 0.0);
+        glVertex3f(-1.0, -10.0, 0.0);
+        glVertex3f(0.0, 10.0, -1.0);
+        glVertex3f(0.0, -10.0, -1.0);
 
         glVertex3f(0.0, 0.0, 10.0);
         glVertex3f(0.0, 0.0, -10.0);
@@ -346,6 +380,10 @@ void draw_coordinate()
         glVertex3f(1.0, 0.0, -10.0);
         glVertex3f(0.0, 1.0, 10.0);
         glVertex3f(0.0, 1.0, -10.0);
+        glVertex3f(-1.0, 0.0, 10.0);
+        glVertex3f(-1.0, 0.0, -10.0);
+        glVertex3f(0.0, -1.0, 10.0);
+        glVertex3f(0.0, -1.0, -10.0);
 
     }
     glEnd();

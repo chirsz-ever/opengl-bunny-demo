@@ -61,6 +61,13 @@ int main(int argc, const char* argv[])
 
     printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size()/3, faces.size()/3);
 
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        vertices[i] *= 10;
+        if (i % 3 == 1) {
+            vertices[i] -= 1;
+        }
+    }
+
     // 顶点缓冲区对象
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -114,7 +121,7 @@ int main(int argc, const char* argv[])
     //IM_ASSERT(font != NULL);
 
     // Our state
-    GLfloat clear_color[4] = {0.70f, 0.85f, 0.93f, 1.00f};
+    GLfloat clear_color[4] = {0.0f, 0.0f, 0.0f, 1.00f};
     GLfloat global_ambient[4] = { 0.1, 0.1, 0.1, 0.0 };
 
     GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
@@ -241,9 +248,9 @@ int main(int argc, const char* argv[])
         auto w = io.DisplaySize.x, h = io.DisplaySize.y;
         auto vw = std::min(w, h) > 800 ? 800 : std::min(w, h); // viewport width
         glViewport(w - vw, (h - vw)/2, vw, vw);
-        gluPerspective(15, 1, 0.5, 2);
+        gluPerspective(60, 1, 0.5, 2);
         gluLookAt(
-            0.0f, 0.0f, 1.0f,
+            1.0f, 1.0f, 1.0f,
             0.0f, 0.10f, 0.0f,
             0.0f, 1.0f, 0.0f
         );

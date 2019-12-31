@@ -16,6 +16,8 @@
 #include <SDL_opengl.h>
 #include <GL/glu.h>
 
+static void draw_coordinate();
+
 // Main code
 int main(int argc, const char* argv[])
 {
@@ -131,6 +133,9 @@ int main(int argc, const char* argv[])
 
     GLfloat mat_shininess = 9.846150f;
 
+    bool draw_coord = false;
+    GLfloat coord_color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+
     // Main loop
     bool done = false;
     while (!done) {
@@ -163,6 +168,10 @@ int main(int argc, const char* argv[])
                 {
                     ImGui::ColorEdit3("clear color", clear_color);
                     ImGui::ColorEdit3("global ambient", global_ambient);
+                    ImGui::Checkbox("draw coordinate", &draw_coord);
+                    if (draw_coord) {
+                        ImGui::ColorEdit3("coordinate line color", coord_color);
+                    }
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Material"))
@@ -252,6 +261,11 @@ int main(int argc, const char* argv[])
         //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
         glMaterialf (GL_FRONT, GL_SHININESS,  mat_shininess);
 
+        if (draw_coord) {
+            glColor3fv(coord_color);
+            draw_coordinate();
+        }
+
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glVertexPointer(3, GL_FLOAT, 0, nullptr);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
@@ -283,4 +297,33 @@ int main(int argc, const char* argv[])
     SDL_Quit();
 
     return 0;
+}
+
+void draw_coordinate()
+{
+    glBegin(GL_LINES);
+    {
+        glVertex3f(10.0, 0.0, 0.0);
+        glVertex3f(-10.0, 0.0, 0.0);
+        glVertex3f(10.0, 1.0, 0.0);
+        glVertex3f(-10.0, 1.0, 0.0);
+        glVertex3f(10.0, 0.0, 1.0);
+        glVertex3f(-10.0, 0.0, 1.0);
+
+        glVertex3f(0.0, 10.0, 0.0);
+        glVertex3f(0.0, -10.0, 0.0);
+        glVertex3f(1.0, 10.0, 0.0);
+        glVertex3f(1.0, -10.0, 0.0);
+        glVertex3f(0.0, 10.0, 1.0);
+        glVertex3f(0.0, -10.0, 1.0);
+
+        glVertex3f(0.0, 0.0, 10.0);
+        glVertex3f(0.0, 0.0, -10.0);
+        glVertex3f(1.0, 0.0, 10.0);
+        glVertex3f(1.0, 0.0, -10.0);
+        glVertex3f(0.0, 1.0, 10.0);
+        glVertex3f(0.0, 1.0, -10.0);
+
+    }
+    glEnd();
 }

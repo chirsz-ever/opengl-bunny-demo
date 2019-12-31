@@ -11,6 +11,7 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl2.h"
 #include "utils.h"
+#include "materials.h"
 #include <stdio.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -124,14 +125,10 @@ int main(int argc, const char* argv[])
     GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
-    GLfloat mat_ambient[4] = {0.105882, 0.058824, 0.113725, 1.000000}; // 环境光
-    GLfloat mat_diffuse[4] = {0.427451, 0.470588, 0.541176, 1.000000}; // 漫反射光
-    GLfloat mat_specular[4] = {0.333333, 0.333333, 0.521569, 1.000000}; // 镜面反射光
+    Material mat = materials[0];
 
     GLfloat light0_position[4] = { 0.23, 0.23, 0.23, 1.0 };
     GLfloat light1_position[4] = { -0.23, 0.23, 0.23, 1.0 };
-
-    GLfloat mat_shininess = 9.846150f;
 
     bool draw_coord = false;
     GLfloat coord_color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
@@ -176,10 +173,21 @@ int main(int argc, const char* argv[])
                 }
                 if (ImGui::BeginTabItem("Material"))
                 {
-                    ImGui::ColorEdit4("ambient", mat_ambient);
-                    ImGui::ColorEdit4("diffuse", mat_diffuse);
-                    ImGui::ColorEdit4("specular", mat_specular);
-                    ImGui::SliderFloat("shininess", &mat_shininess, 0, 128);
+                    ImGui::ColorEdit4("ambient", mat.ambient);
+                    ImGui::ColorEdit4("diffuse", mat.diffuse);
+                    ImGui::ColorEdit4("specular", mat.specular);
+                    ImGui::SliderFloat("shininess", &mat.shininess, 0, 128);
+                    ImGui::Separator();
+                    ImGui::Text("built-in materials");
+                    int count = 1;
+                    for (const Material& m: materials) {
+                        if (ImGui::Button(m.name)) {
+                            mat = m;
+                        }
+                        if (count % 5 != 0)
+                            ImGui::SameLine();
+                        count += 1;
+                    }
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Light0"))
@@ -255,11 +263,11 @@ int main(int argc, const char* argv[])
         glLightModelfv (GL_LIGHT_MODEL_AMBIENT, (float*)&global_ambient);
 
         // 材质设置
-        glMaterialfv(GL_FRONT, GL_AMBIENT,    (float*)&mat_ambient);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE,    (float*)&mat_diffuse);
-        glMaterialfv(GL_FRONT, GL_SPECULAR,   (float*)&mat_specular);
+        glMaterialfv(GL_FRONT, GL_AMBIENT,    (float*)&mat.ambient);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE,    (float*)&mat.diffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR,   (float*)&mat.specular);
         //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
-        glMaterialf (GL_FRONT, GL_SHININESS,  mat_shininess);
+        glMaterialf (GL_FRONT, GL_SHININESS,  mat.shininess);
 
         if (draw_coord) {
             glColor3fv(coord_color);

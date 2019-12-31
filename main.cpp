@@ -140,6 +140,8 @@ int main(int argc, const char* argv[])
     bool draw_coord = false;
     GLfloat coord_color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 
+    float horizonal_angle = 0.0f;
+
     // Main loop
     bool done = false;
     while (!done) {
@@ -248,9 +250,9 @@ int main(int argc, const char* argv[])
         auto w = io.DisplaySize.x, h = io.DisplaySize.y;
         auto vw = std::min(w, h) > 800 ? 800 : std::min(w, h); // viewport width
         glViewport(w - vw, (h - vw)/2, vw, vw);
-        gluPerspective(60, 1, 0.5, 2);
+        gluPerspective(60, 1, 0.5, 12);
         gluLookAt(
-            1.0f, 1.0f, 1.0f,
+            1.5f, 1.0f, 1.5f,
             0.0f, 0.10f, 0.0f,
             0.0f, 1.0f, 0.0f
         );
@@ -280,6 +282,12 @@ int main(int argc, const char* argv[])
             glColor3fv(coord_color);
             draw_coordinate();
         }
+
+        if (ImGui::GetMousePos().x > w - vw && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+            horizonal_angle += ImGui::GetMouseDragDelta().x;
+            ImGui::ResetMouseDragDelta();
+        }
+        glRotatef(horizonal_angle, 0, 1, 0);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glVertexPointer(3, GL_FLOAT, 0, nullptr);

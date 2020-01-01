@@ -29,7 +29,7 @@ ifeq ($(DEBUG), 1)
 	CXXFLAGS += -g
 endif
 
-LIBS = -lGLU -lGLEW
+LIBS = -lGLU -lGLEW -lglut
 
 ##---------------------------------------------------------------------
 ## BUILD FLAGS PER PLATFORM

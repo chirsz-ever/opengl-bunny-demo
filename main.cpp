@@ -17,6 +17,7 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <GL/glu.h>
+#include <GL/glut.h>
 
 static void draw_coordinate();
 
@@ -55,6 +56,9 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "Failed to initalized GLEW\n");
         return -1;
     }
+
+    // Init GLUT
+    glutInit(&argc, (char**)argv);
 
     // 加载 Stanford Bunny 数据
     std::vector<GLfloat> vertices;
@@ -135,10 +139,11 @@ int main(int argc, const char* argv[])
 
     Material mat = materials[0];
 
-    GLfloat light0_position[4] = { 0.23, 0.23, 0.23, 1.0 };
-    GLfloat light1_position[4] = { -0.23, 0.23, 0.23, 1.0 };
+    GLfloat light0_position[4] = { 1.0, 0.23, 0.23, 1.0 };
+    GLfloat light1_position[4] = { -0.23, 0.46, 1.0, 1.0 };
 
     bool draw_coord = false;
+    bool draw_lights = false;
     GLfloat coord_color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 
     float horizonal_angle = 0.0f;
@@ -200,9 +205,7 @@ int main(int argc, const char* argv[])
                     ImGui::ColorEdit3("clear color", clear_color);
                     ImGui::ColorEdit3("global ambient", global_ambient);
                     ImGui::Checkbox("draw coordinate", &draw_coord);
-                    if (draw_coord) {
-                        ImGui::ColorEdit3("coordinate line color", coord_color);
-                    }
+                    ImGui::Checkbox("draw lights", &draw_lights);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Material")) {
@@ -227,12 +230,20 @@ int main(int argc, const char* argv[])
                     ImGui::ColorEdit4("ambient", light0_ambient);
                     ImGui::ColorEdit4("diffuse", light0_diffuse);
                     ImGui::ColorEdit4("specular", light0_specular);
+                    ImGui::Text("position:");
+                    ImGui::SliderFloat("x", &light0_position[0], -10.0f, 10.0f);
+                    ImGui::SliderFloat("y", &light0_position[1], -10.0f, 10.0f);
+                    ImGui::SliderFloat("z", &light0_position[2], -10.0f, 10.0f);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Light1")) {
                     ImGui::ColorEdit4("ambient", light1_ambient);
                     ImGui::ColorEdit4("diffuse", light1_diffuse);
                     ImGui::ColorEdit4("specular", light1_specular);
+                    ImGui::Text("position:");
+                    ImGui::SliderFloat("x", &light1_position[0], -10.0f, 10.0f);
+                    ImGui::SliderFloat("y", &light1_position[1], -10.0f, 10.0f);
+                    ImGui::SliderFloat("z", &light1_position[2], -10.0f, 10.0f);
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
@@ -311,11 +322,22 @@ int main(int argc, const char* argv[])
             draw_coordinate();
         }
 
+        // 指出光源位置
+        if (draw_lights) {
+            glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
+            glutSolidSphere(0.05, 10, 10);
+            glTranslatef(-light0_position[0], -light0_position[1], -light0_position[2]);
+            glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
+            glutSolidSphere(0.05, 10, 10);
+            glTranslatef(-light1_position[0], -light1_position[1], -light1_position[2]);
+        }
+
         // 水平旋转，注意 Y 轴向上
         glRotatef(horizonal_angle, 0, 1, 0);
         glScalef(0.5f, 0.5f, 0.5f);
         // glTranslatef(0.0f, -0.1f, 0.0f);
 
+        // 画 Stanford Bunny
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glVertexPointer(3, GL_FLOAT, 0, nullptr);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);

@@ -150,8 +150,8 @@ int main(int argc, const char* argv[])
 
     Material mat = materials[0];
 
-    GLfloat light0_position[4] = { 1.0, 0.23, 0.23, 1.0 };
-    GLfloat light1_position[4] = { -1.0f, -0.65f, 1.0f, 1.0f };
+    GLfloat light0_position[4] = { 2.3f, 1.0f, 0.23f, 1.0 };
+    GLfloat light1_position[4] = { -3.0f, -0.65f, 1.5f, 1.0f };
 
     bool draw_coord = false;
     bool draw_lights = false;
@@ -159,6 +159,7 @@ int main(int argc, const char* argv[])
 
     float horizonal_angle = 45.0f;
     float pitch_angle = 60.0f;  // 与 y 轴正方向夹角，单位度
+    float fovy = 60.0f;
 
     // Main loop
     bool done = false;
@@ -215,6 +216,7 @@ int main(int argc, const char* argv[])
                 if (ImGui::BeginTabItem("Global")) {
                     ImGui::ColorEdit3("clear color", clear_color);
                     ImGui::ColorEdit3("global ambient", global_ambient);
+                    ImGui::SliderFloat("fovy", &fovy, 5.0f, 150.0f);
                     ImGui::Checkbox("draw coordinate", &draw_coord);
                     ImGui::Checkbox("draw lights", &draw_lights);
                     ImGui::Checkbox("wire view", &enable_wire_view);
@@ -301,11 +303,11 @@ int main(int argc, const char* argv[])
         glPushMatrix();
 
         glViewport(w - vw, (h - vw) / 2, vw, vw);
-        gluPerspective(60, 1, 0.5, 12);
+        gluPerspective(fovy, 1, 0.1, 20);
 
-        float cop_x = 2.0f * sin(D2R(pitch_angle));
-        float cop_y = 2.0f * cos(D2R(pitch_angle));
-        float cop_z = 2.0f * sin(D2R(pitch_angle));
+        float cop_x = 10.0f * sin(D2R(pitch_angle));
+        float cop_y = 10.0f * cos(D2R(pitch_angle));
+        float cop_z = 10.0f * sin(D2R(pitch_angle));
         gluLookAt(
             cop_x, cop_y, cop_z,
             0.0f, 0.0f, 0.0f,
@@ -352,7 +354,7 @@ int main(int argc, const char* argv[])
 
         // 水平旋转，注意 Y 轴向上
         glRotatef(horizonal_angle, 0, 1, 0);
-        glScalef(0.5f, 0.5f, 0.5f);
+        //glScalef(0.5f, 0.5f, 0.5f);
         glTranslatef(0.0f, -0.5f, 0.0f);
 
         if (enable_wire_view) {

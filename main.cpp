@@ -137,7 +137,7 @@ int main(int argc, const char* argv[])
     //IM_ASSERT(font != NULL);
 
     // Our state
-    GLfloat clear_color[4] = {0.0f, 0.0f, 0.0f, 1.00f};
+    GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f};
     GLfloat global_ambient[4] = { 0.1, 0.1, 0.1, 0.0 };
 
     GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
@@ -151,14 +151,14 @@ int main(int argc, const char* argv[])
     Material mat = materials[0];
 
     GLfloat light0_position[4] = { 1.0, 0.23, 0.23, 1.0 };
-    GLfloat light1_position[4] = { -0.23, 0.46, 1.0, 1.0 };
+    GLfloat light1_position[4] = { -1.0f, -0.65f, 1.0f, 1.0f };
 
     bool draw_coord = false;
     bool draw_lights = false;
     GLfloat coord_color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
 
-    float horizonal_angle = 0.0f;
-    float pitch_angle = 90.0f;  // 与 y 轴正方向夹角，单位度
+    float horizonal_angle = 45.0f;
+    float pitch_angle = 60.0f;  // 与 y 轴正方向夹角，单位度
 
     // Main loop
     bool done = false;
@@ -269,6 +269,8 @@ int main(int argc, const char* argv[])
                     ImGui::Text("Mouse Position: %5.1f,%5.1f)", io.MousePos.x, io.MousePos.y);
                 else
                     ImGui::Text("Mouse Position: %-13s", "<invalid>");
+                ImGui::Text("horizonal angle:%.1f", horizonal_angle);
+                ImGui::Text("pitch angle:%.1f", pitch_angle);
                 ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
             }
             ImGui::End();
@@ -351,7 +353,7 @@ int main(int argc, const char* argv[])
         // 水平旋转，注意 Y 轴向上
         glRotatef(horizonal_angle, 0, 1, 0);
         glScalef(0.5f, 0.5f, 0.5f);
-        // glTranslatef(0.0f, -0.1f, 0.0f);
+        glTranslatef(0.0f, -0.5f, 0.0f);
 
         // 画 Stanford Bunny
         glBindBuffer(GL_ARRAY_BUFFER, VBO);

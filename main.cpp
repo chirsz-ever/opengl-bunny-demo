@@ -263,6 +263,7 @@ int main(int argc, const char* argv[])
         glEnable(GL_VERTEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
+        glEnable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
         glEnable(GL_LIGHT0);
         glEnable(GL_LIGHT1);
@@ -302,6 +303,9 @@ int main(int argc, const char* argv[])
         //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
         glMaterialf (GL_FRONT, GL_SHININESS,  mat.shininess);
 
+        // 背面剔除
+        glCullFace(GL_BACK);
+
         if (draw_coord) {
             glColor3fv(coord_color);
             draw_coordinate();
@@ -324,6 +328,7 @@ int main(int argc, const char* argv[])
 
         // 还原状态
         glDisable(GL_RESCALE_NORMAL);
+        glDisable(GL_CULL_FACE);
         glPopMatrix();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

@@ -14,18 +14,57 @@
 #include "materials.h"
 #include <stdio.h>
 #include <cmath>
+#include <algorithm>
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
 
 static void draw_coordinate();
+static void set_light_attribute();
+static void set_view();
+static void draw_model();
 
 // Degree to Radian
 inline float D2R(float degree)
 {
     return degree * M_PI / 180.0f;
 }
+
+// 模型数据
+static std::vector<GLfloat> vertices;
+static std::vector<GLuint> faces;
+static std::vector<GLfloat> normals;
+static GLuint VBO, IBO, NBO;
+
+// Our state
+static GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f};         // 清屏颜色
+static GLfloat global_ambient[4] = { 0.1, 0.1, 0.1, 0.0 };            // 全局环境光
+
+static GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};          // 光源 0 环境光
+static GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};          // 光源 0 漫反射光
+static GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};         // 光源 0 镜面反射光
+
+static GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};          // 光源 1 环境光
+static GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};          // 光源 1 漫反射光
+static GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};         // 光源 1 镜面反射光
+
+static Material mat = materials[0];                                   // 材质参数
+
+static GLfloat light0_position[4] = { 2.3f, 1.0f, 0.23f, 1.0 };       // 光源 0 位置
+static GLfloat light1_position[4] = { -3.0f, -0.65f, 1.5f, 1.0f };    // 光源 1 位置
+
+static bool draw_coord = false;                                       // 绘制坐标系辅助线
+static bool draw_lights = false;                                      // 绘制光源位置提示球
+static bool enable_wire_view = false;                                 // 启用线框模式绘制模型
+
+static float horizonal_angle = 45.0f;                                 // 水平转动角，单位为度
+static float pitch_angle = 60.0f;                                     // 俯仰角，与 y 轴正方向夹角，单位为度
+static float fovy = 30.0f;                                            // 观察张角
+
+struct {
+    GLuint x, y, w, h;
+} static viewport;                                                    // 视口参数
 
 // Main code
 int main(int argc, const char* argv[])
@@ -61,10 +100,6 @@ int main(int argc, const char* argv[])
     glutInit(&argc, (char**)argv);
 
     // 加载 Stanford Bunny 数据
-    std::vector<GLfloat> vertices;
-    std::vector<GLuint> faces;
-    std::vector<GLfloat> normals;
-    GLuint VBO, IBO, NBO;
     const char *filename = "bunny.obj";
     if (argc >= 2) {
         filename = argv[1];
@@ -110,8 +145,6 @@ int main(int argc, const char* argv[])
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -120,46 +153,6 @@ int main(int argc, const char* argv[])
     // Setup Platform/Renderer bindings
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL2_Init();
-
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'docs/FONTS.txt' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != NULL);
-
-    // Our state
-    GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f};
-    GLfloat global_ambient[4] = { 0.1, 0.1, 0.1, 0.0 };
-
-    GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
-    GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-
-    GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};
-    GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-
-    Material mat = materials[0];
-
-    GLfloat light0_position[4] = { 2.3f, 1.0f, 0.23f, 1.0 };
-    GLfloat light1_position[4] = { -3.0f, -0.65f, 1.5f, 1.0f };
-
-    bool draw_coord = false;
-    bool draw_lights = false;
-    bool enable_wire_view = false;
-
-    float horizonal_angle = 45.0f;
-    float pitch_angle = 60.0f;  // 与 y 轴正方向夹角，单位度
-    float fovy = 30.0f;
 
     // Main loop
     bool done = false;
@@ -176,12 +169,14 @@ int main(int argc, const char* argv[])
                 done = true;
         }
 
-        // 自适应视口变换
-        auto w = io.DisplaySize.x, h = io.DisplaySize.y;
-        auto vw = std::min(w, h) > 800 ? 800 : std::min(w, h); // viewport width
+        // 更新视口参数
+        viewport.w = std::min({(GLuint)io.DisplaySize.x, (GLuint)io.DisplaySize.y, (GLuint)800});
+        viewport.h = viewport.w;
+        viewport.x = io.DisplaySize.x - viewport.w;
+        viewport.y = (io.DisplaySize.y - viewport.h) / 2;
 
         // 更新姿态
-        if (ImGui::GetMousePos().x > w - vw) {
+        if (ImGui::GetMousePos().x > viewport.x) {
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                 // 偏航角
                 auto dl = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
@@ -194,7 +189,7 @@ int main(int argc, const char* argv[])
                 pitch_angle -= dr.y;
                 if (pitch_angle >= 360) {
                     pitch_angle -= 360;
-                } else if (pitch_angle <= 0) {
+                } else if (pitch_angle < 0) {
                     pitch_angle += 360;
                 }
                 ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
@@ -282,7 +277,6 @@ int main(int argc, const char* argv[])
 
         // Rendering
         ImGui::Render();
-        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -296,55 +290,28 @@ int main(int argc, const char* argv[])
         glEnable(GL_LIGHT0);
         glEnable(GL_LIGHT1);
 
+        // 背面剔除
+        glCullFace(GL_BACK);
+
         // 提前加载法向量数组
         glBindBuffer(GL_ARRAY_BUFFER, NBO);
         glNormalPointer(GL_FLOAT, 0, nullptr);
 
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
+
+        // 设置模视变换和视口
         glLoadIdentity();
-
-        glViewport(w - vw, (h - vw) / 2, vw, vw);
-        gluPerspective(fovy, 1, 0.1, 20);
-
-        float cop_x = 10.0f * sin(D2R(pitch_angle));
-        float cop_y = 10.0f * cos(D2R(pitch_angle));
-        float cop_z = 10.0f * sin(D2R(pitch_angle));
-        gluLookAt(
-            cop_x, cop_y, cop_z,
-            0.0f, 0.0f, 0.0f,
-            0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
-        );
+        set_view();
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
 
-        // 光源设置
-        // 0 号光源
-        glLightfv (GL_LIGHT0, GL_AMBIENT,  (float*)&light0_ambient);
-        glLightfv (GL_LIGHT0, GL_DIFFUSE,  (float*)&light0_diffuse);
-        glLightfv (GL_LIGHT0, GL_SPECULAR, (float*)&light0_specular);
-        glLightfv (GL_LIGHT0, GL_POSITION, (float*)&light0_position);
-        // 1 号光源
-        glLightfv (GL_LIGHT1, GL_AMBIENT,  (float*)&light1_ambient);
-        glLightfv (GL_LIGHT1, GL_DIFFUSE,  (float*)&light1_diffuse);
-        glLightfv (GL_LIGHT1, GL_SPECULAR, (float*)&light1_specular);
-        glLightfv (GL_LIGHT1, GL_POSITION, (float*)&light1_position);
-        // 全局环境光
-        glLightModelfv (GL_LIGHT_MODEL_AMBIENT, (float*)&global_ambient);
+        // 光源及材质设置
+        set_light_attribute();
 
-        // 材质设置
-        glMaterialfv(GL_FRONT, GL_AMBIENT,    (float*)&mat.ambient);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE,    (float*)&mat.diffuse);
-        glMaterialfv(GL_FRONT, GL_SPECULAR,   (float*)&mat.specular);
-        //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
-        glMaterialf (GL_FRONT, GL_SHININESS,  mat.shininess);
-
-        // 背面剔除
-        glCullFace(GL_BACK);
-
-        if (draw_coord) {;
+        if (draw_coord) {
             draw_coordinate();
         }
 
@@ -356,30 +323,11 @@ int main(int argc, const char* argv[])
             glLoadIdentity();
             glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
             glutSolidSphere(0.05, 10, 10);
-            glLoadIdentity();
         }
 
-        // 水平旋转，注意 Y 轴向上
-        glRotatef(horizonal_angle, 0, 1, 0);
-        //glScalef(0.5f, 0.5f, 0.5f);
-        glTranslatef(0.0f, -0.5f, 0.0f);
-
-        if (enable_wire_view) {
-            glPolygonMode(GL_FRONT, GL_LINE);
-        } else {
-            glPolygonMode(GL_FRONT, GL_FILL);
-        }
-
-        // 画 Stanford Bunny
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-        glDrawElements(
-            GL_TRIANGLES,
-            faces.size(),
-            GL_UNSIGNED_INT,
-            nullptr
-        );
+        // 绘制模型
+        glLoadIdentity();
+        draw_model();
 
         // 还原状态
         glDisable(GL_RESCALE_NORMAL);
@@ -410,7 +358,7 @@ int main(int argc, const char* argv[])
     return 0;
 }
 
-void draw_coordinate()
+static void draw_coordinate()
 {
     glBegin(GL_LINES);
     {
@@ -449,4 +397,68 @@ void draw_coordinate()
 
     }
     glEnd();
+}
+
+// 光源及材质设置
+static void set_light_attribute()
+{
+    // 0 号光源
+    glLightfv (GL_LIGHT0, GL_AMBIENT,  (float*)&light0_ambient);
+    glLightfv (GL_LIGHT0, GL_DIFFUSE,  (float*)&light0_diffuse);
+    glLightfv (GL_LIGHT0, GL_SPECULAR, (float*)&light0_specular);
+    glLightfv (GL_LIGHT0, GL_POSITION, (float*)&light0_position);
+    // 1 号光源
+    glLightfv (GL_LIGHT1, GL_AMBIENT,  (float*)&light1_ambient);
+    glLightfv (GL_LIGHT1, GL_DIFFUSE,  (float*)&light1_diffuse);
+    glLightfv (GL_LIGHT1, GL_SPECULAR, (float*)&light1_specular);
+    glLightfv (GL_LIGHT1, GL_POSITION, (float*)&light1_position);
+    // 全局环境光
+    glLightModelfv (GL_LIGHT_MODEL_AMBIENT, (float*)&global_ambient);
+
+    // 材质设置
+    glMaterialfv(GL_FRONT, GL_AMBIENT,    (float*)&mat.ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE,    (float*)&mat.diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,   (float*)&mat.specular);
+    //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
+    glMaterialf (GL_FRONT, GL_SHININESS,  mat.shininess);
+}
+
+static void draw_model()
+{
+    // 水平旋转，注意 Y 轴向上
+    glRotatef(horizonal_angle, 0, 1, 0);
+    //glScalef(0.5f, 0.5f, 0.5f);
+    glTranslatef(0.0f, -0.5f, 0.0f);
+
+    if (enable_wire_view) {
+        glPolygonMode(GL_FRONT, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT, GL_FILL);
+    }
+
+    // 画 Stanford Bunny
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glVertexPointer(3, GL_FLOAT, 0, nullptr);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glDrawElements(
+        GL_TRIANGLES,
+        faces.size(),
+        GL_UNSIGNED_INT,
+        nullptr
+    );
+}
+
+static void set_view()
+{
+    glViewport(viewport.x, viewport.y, viewport.w, viewport.h);
+    gluPerspective(fovy, 1, 0.1, 20);
+
+    float cop_x = 10.0f * sin(D2R(pitch_angle));
+    float cop_y = 10.0f * cos(D2R(pitch_angle));
+    float cop_z = 10.0f * sin(D2R(pitch_angle));
+    gluLookAt(
+        cop_x, cop_y, cop_z,
+        0.0f, 0.0f, 0.0f,
+        0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
+    );
 }

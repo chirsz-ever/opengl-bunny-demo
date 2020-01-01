@@ -159,7 +159,7 @@ int main(int argc, const char* argv[])
 
     float horizonal_angle = 45.0f;
     float pitch_angle = 60.0f;  // 与 y 轴正方向夹角，单位度
-    float fovy = 60.0f;
+    float fovy = 30.0f;
 
     // Main loop
     bool done = false;
@@ -300,7 +300,9 @@ int main(int argc, const char* argv[])
         glBindBuffer(GL_ARRAY_BUFFER, NBO);
         glNormalPointer(GL_FLOAT, 0, nullptr);
 
+        glMatrixMode(GL_PROJECTION);
         glPushMatrix();
+        glLoadIdentity();
 
         glViewport(w - vw, (h - vw) / 2, vw, vw);
         gluPerspective(fovy, 1, 0.1, 20);
@@ -313,6 +315,10 @@ int main(int argc, const char* argv[])
             0.0f, 0.0f, 0.0f,
             0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
         );
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
 
         // 光源设置
         // 0 号光源
@@ -344,12 +350,13 @@ int main(int argc, const char* argv[])
 
         // 指出光源位置
         if (draw_lights) {
+            glPolygonMode(GL_FRONT, GL_FILL);
             glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
             glutSolidSphere(0.05, 10, 10);
-            glTranslatef(-light0_position[0], -light0_position[1], -light0_position[2]);
+            glLoadIdentity();
             glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
             glutSolidSphere(0.05, 10, 10);
-            glTranslatef(-light1_position[0], -light1_position[1], -light1_position[2]);
+            glLoadIdentity();
         }
 
         // 水平旋转，注意 Y 轴向上
@@ -378,6 +385,9 @@ int main(int argc, const char* argv[])
         glDisable(GL_RESCALE_NORMAL);
         glDisable(GL_NORMAL_ARRAY);
         glDisable(GL_CULL_FACE);
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
         glPopMatrix();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

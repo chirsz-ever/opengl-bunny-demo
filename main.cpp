@@ -59,14 +59,15 @@ int main(int argc, const char* argv[])
     // 加载 Stanford Bunny 数据
     std::vector<GLfloat> vertices;
     std::vector<GLuint> faces;
+    std::vector<GLfloat> normals;
     GLuint VBO, IBO;
-    const char *filename = "bunny.ply";
+    const char *filename = "bunny.obj";
     if (argc >= 2) {
         filename = argv[1];
     }
-    load_bunny_data(filename, vertices, faces);
+    load_bunny_data(filename, vertices, faces, normals);
 
-    printf("%s loaded, vertices:%lu, faces:%lu\n", filename, vertices.size() / 3, faces.size() / 3);
+    printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, vertices.size() / 3, faces.size() / 3, normals.size() / 3);
 
     // 顶点缓冲区对象
     glGenBuffers(1, &VBO);
@@ -308,8 +309,8 @@ int main(int argc, const char* argv[])
 
         // 水平旋转，注意 Y 轴向上
         glRotatef(horizonal_angle, 0, 1, 0);
-        glScalef(10.0f, 10.0f, 10.0f);
-        glTranslatef(0.0f, -0.1f, 0.0f);
+        glScalef(0.5f, 0.5f, 0.5f);
+        // glTranslatef(0.0f, -0.1f, 0.0f);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glVertexPointer(3, GL_FLOAT, 0, nullptr);

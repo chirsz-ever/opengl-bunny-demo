@@ -1,5 +1,4 @@
 *.o
-*.obj
 *.exe
 
 ## Unix executables

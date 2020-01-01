@@ -11,7 +11,7 @@ static void eatline(std::istream& input)
 	input.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-void load_bunny_data(const char file[], std::vector<GLfloat>& vertices, std::vector<GLuint>& faces)
+void load_bunny_data(const char file[], std::vector<GLfloat>& vertices, std::vector<GLuint>& faces, std::vector<GLfloat>& normals)
 {
 	ifstream fin;
 	fin.open(file);
@@ -21,58 +21,33 @@ void load_bunny_data(const char file[], std::vector<GLfloat>& vertices, std::vec
 	}
 
 	// 开始读取文件
-	size_t vertexNum = 0, faceNum = 0;
 	string token;
+	float x, y, z;
+	GLuint i1, i2, i3;
 	while (!fin.eof()) {
 		fin >> token;
-		if (token == "element") {
-			fin >> token;
-			if (token == "vertex") {
-				fin >> vertexNum;
-				vertices.reserve(vertexNum * 3);
-			} else if (token == "face") {
-				fin >> faceNum;
-				faces.reserve(faceNum * 3);
-			}
+		if (token == "#") {
 			eatline(fin);
-		} else if (token == "end_header") {
+		} else if (token == "v") {
+			fin >> x >> y >> z;
+			vertices.push_back(x);
+			vertices.push_back(y);
+			vertices.push_back(z);
 			eatline(fin);
-			GLfloat x, y, z;
-			GLfloat confidence;
-			GLfloat intensity;
-
-			// 添加点信息到数组
-			for (size_t i = 0; i < vertexNum; ++i) {
-				fin >> x;
-				fin >> y;
-				fin >> z;
-
-				vertices.push_back(x);
-				vertices.push_back(y);
-				vertices.push_back(z);
-
-				fin >> confidence;
-				fin >> intensity;
-
-			}
-
-			GLuint idx1, idx2, idx3;
-			size_t nums;
-
-			// 添加面信息到数组
-			for (size_t i = 0; i < faceNum; ++i) {
-				fin >> nums;
-				if (nums == 3) {
-					fin >> idx1;
-					fin >> idx2;
-					fin >> idx3;
-
-					faces.push_back(idx1);
-					faces.push_back(idx2);
-					faces.push_back(idx3);
-				}
-			}
-			return;
+		} else if (token == "vn") {
+			fin >> x >> y >> z;
+			normals.push_back(x);
+			normals.push_back(y);
+			normals.push_back(z);
+			eatline(fin);
+		} else if (token == "f") {
+			fin >> i1;fin.get();fin.get();fin >> i1;
+			fin >> i2;fin.get();fin.get();fin >> i2;
+			fin >> i3;fin.get();fin.get();fin >> i3;
+			faces.push_back(i1-1);
+			faces.push_back(i2-1);
+			faces.push_back(i3-1);
+			eatline(fin);
 		}
 	}
 }

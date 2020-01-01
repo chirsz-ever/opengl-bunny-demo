@@ -64,7 +64,7 @@ int main(int argc, const char* argv[])
     std::vector<GLfloat> vertices;
     std::vector<GLuint> faces;
     std::vector<GLfloat> normals;
-    GLuint VBO, IBO;
+    GLuint VBO, IBO, NBO;
     const char *filename = "bunny.obj";
     if (argc >= 2) {
         filename = argv[1];
@@ -94,6 +94,17 @@ int main(int argc, const char* argv[])
         GL_STATIC_DRAW
     );
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // 法向量顶点缓冲区对象
+    glGenBuffers(1, &NBO);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        normals.size() * sizeof(GLfloat),
+        normals.data(),
+        GL_STATIC_DRAW
+    );
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -231,9 +242,9 @@ int main(int argc, const char* argv[])
                     ImGui::ColorEdit4("diffuse", light0_diffuse);
                     ImGui::ColorEdit4("specular", light0_specular);
                     ImGui::Text("position:");
-                    ImGui::SliderFloat("x", &light0_position[0], -10.0f, 10.0f);
-                    ImGui::SliderFloat("y", &light0_position[1], -10.0f, 10.0f);
-                    ImGui::SliderFloat("z", &light0_position[2], -10.0f, 10.0f);
+                    ImGui::SliderFloat("x", &light0_position[0], -5.0f, 5.0f);
+                    ImGui::SliderFloat("y", &light0_position[1], -5.0f, 5.0f);
+                    ImGui::SliderFloat("z", &light0_position[2], -5.0f, 5.0f);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Light1")) {
@@ -241,9 +252,9 @@ int main(int argc, const char* argv[])
                     ImGui::ColorEdit4("diffuse", light1_diffuse);
                     ImGui::ColorEdit4("specular", light1_specular);
                     ImGui::Text("position:");
-                    ImGui::SliderFloat("x", &light1_position[0], -10.0f, 10.0f);
-                    ImGui::SliderFloat("y", &light1_position[1], -10.0f, 10.0f);
-                    ImGui::SliderFloat("z", &light1_position[2], -10.0f, 10.0f);
+                    ImGui::SliderFloat("x", &light1_position[0], -5.0f, 5.0f);
+                    ImGui::SliderFloat("y", &light1_position[1], -5.0f, 5.0f);
+                    ImGui::SliderFloat("z", &light1_position[2], -5.0f, 5.0f);
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
@@ -272,12 +283,17 @@ int main(int argc, const char* argv[])
 
         // 渲染 stanford bunny
         glEnable(GL_VERTEX_ARRAY);
+        glEnable(GL_NORMAL_ARRAY);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
         glEnable(GL_CULL_FACE);
         glEnable(GL_LIGHTING);
         glEnable(GL_LIGHT0);
         glEnable(GL_LIGHT1);
+
+        // 提前加载法向量数组
+        glBindBuffer(GL_ARRAY_BUFFER, NBO);
+        glNormalPointer(GL_FLOAT, 0, nullptr);
 
         glPushMatrix();
 
@@ -350,6 +366,7 @@ int main(int argc, const char* argv[])
 
         // 还原状态
         glDisable(GL_RESCALE_NORMAL);
+        glDisable(GL_NORMAL_ARRAY);
         glDisable(GL_CULL_FACE);
         glPopMatrix();
         glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -155,7 +155,7 @@ int main(int argc, const char* argv[])
 
     bool draw_coord = false;
     bool draw_lights = false;
-    GLfloat coord_color[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
+    bool enable_wire_view = false;
 
     float horizonal_angle = 45.0f;
     float pitch_angle = 60.0f;  // 与 y 轴正方向夹角，单位度
@@ -217,6 +217,7 @@ int main(int argc, const char* argv[])
                     ImGui::ColorEdit3("global ambient", global_ambient);
                     ImGui::Checkbox("draw coordinate", &draw_coord);
                     ImGui::Checkbox("draw lights", &draw_lights);
+                    ImGui::Checkbox("wire view", &enable_wire_view);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Material")) {
@@ -335,8 +336,7 @@ int main(int argc, const char* argv[])
         // 背面剔除
         glCullFace(GL_BACK);
 
-        if (draw_coord) {
-            glColor3fv(coord_color);
+        if (draw_coord) {;
             draw_coordinate();
         }
 
@@ -354,6 +354,12 @@ int main(int argc, const char* argv[])
         glRotatef(horizonal_angle, 0, 1, 0);
         glScalef(0.5f, 0.5f, 0.5f);
         glTranslatef(0.0f, -0.5f, 0.0f);
+
+        if (enable_wire_view) {
+            glPolygonMode(GL_FRONT, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT, GL_FILL);
+        }
 
         // 画 Stanford Bunny
         glBindBuffer(GL_ARRAY_BUFFER, VBO);

@@ -24,6 +24,7 @@ static void draw_coordinate();
 static void set_light_attribute();
 static void set_view();
 static void draw_model();
+static void draw_model_select();
 
 // Degree to Radian
 inline float D2R(float degree)
@@ -62,9 +63,17 @@ static float horizonal_angle = 45.0f;                                 // 水平�
 static float pitch_angle = 60.0f;                                     // 俯仰角，与 y 轴正方向夹角，单位为度
 static float fovy = 30.0f;                                            // 观察张角
 
+static bool lb_clicked = false;                                       // 左键点击：按下，不移动，松开
+static ImVec2 lb_press_pos;                                           // 左键按下的位置
+static bool select_dispaly = false;                                   // 显示被选取的面片
+static GLint selected_id;
+
 struct {
-    GLuint x, y, w, h;
+    GLint x, y, w, h;
 } static viewport;                                                    // 视口参数
+
+const size_t SELECT_BUF_SIZE = 128;
+GLuint select_buffer[SELECT_BUF_SIZE];
 
 // Main code
 int main(int argc, const char* argv[])
@@ -174,8 +183,10 @@ int main(int argc, const char* argv[])
         viewport.h = viewport.w;
         viewport.x = io.DisplaySize.x - viewport.w;
         viewport.y = (io.DisplaySize.y - viewport.h) / 2;
+        glViewport(viewport.x, viewport.y, viewport.w, viewport.h);
 
         // 更新姿态
+        lb_clicked = false;
         if (ImGui::GetMousePos().x > viewport.x) {
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                 // 偏航角
@@ -194,6 +205,75 @@ int main(int argc, const char* argv[])
                 }
                 ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
             }
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                lb_press_pos = ImGui::GetMousePos();
+            } else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                auto lb_cur_pos = ImGui::GetMousePos();
+                if (lb_cur_pos.x == lb_press_pos.x && lb_cur_pos.y == lb_press_pos.y) {
+                    lb_clicked = true;
+                }
+            }
+        }
+
+        // 拾取模式
+        if (lb_clicked) {
+            glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
+            glRenderMode(GL_SELECT);
+
+            glMatrixMode(GL_PROJECTION);
+            glPushMatrix();
+
+            // 设置模视变换和视口
+            glLoadIdentity();
+            gluPickMatrix(lb_press_pos.x, viewport.h - lb_press_pos.y, 1, 1, (GLint*)&viewport);
+            set_view();
+
+            glMatrixMode(GL_MODELVIEW);
+            glPushMatrix();
+
+            // 绘制模型
+            glLoadIdentity();
+            draw_model_select();
+
+            // 恢复先前矩阵
+            glMatrixMode(GL_PROJECTION);
+            glPopMatrix();
+            glMatrixMode(GL_MODELVIEW);
+            SDL_GL_SwapWindow(window);
+
+            glFlush();
+
+            // 回到渲染模式并得到选中物体的数目
+            const GLint hits = glRenderMode(GL_RENDER);
+            printf("hits: %d\n", hits);
+            if (hits >= 1) {
+                GLuint minz = select_buffer[1];
+                selected_id = select_buffer[3];
+                size_t i = 0;
+                for (GLint n = 0; n < hits; ++n) {
+                    if (select_buffer[i] == 0) {
+                        printf("name: <None>\n");
+                        printf("min z: %u\n", select_buffer[i + 1]);
+                        printf("max z: %u\n", select_buffer[i + 2]);
+                        i += 3;
+                    } else {
+                        printf("name: ");
+                        for (GLuint m = i + 3; m < i + 3 + select_buffer[i]; ++m) {
+                            printf("%u ", select_buffer[m]);
+                        }
+                        printf("\n");
+                        printf("min z: %u\n", select_buffer[i + 1]);
+                        printf("max z: %u\n", select_buffer[i + 2]);
+                        if (select_buffer[i + 1] < minz) {
+                            minz = select_buffer[i + 1];
+                            selected_id = select_buffer[i + 3];
+                        }
+                        i += 3 + select_buffer[i];
+                    }
+                }
+                printf("selected id: %d\n", selected_id);
+            }
+
         }
 
         // Start the Dear ImGui frame
@@ -261,7 +341,7 @@ int main(int argc, const char* argv[])
 
             ImGui::SetNextWindowPos(ImVec2(10, io.DisplaySize.y - 10), ImGuiCond_Always, ImVec2(0.0, 1.0));
             ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-            ImGui::Begin("Example: Simple overlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+            ImGui::Begin("overlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
             {
                 if (ImGui::IsMousePosValid())
                     ImGui::Text("Mouse Position: %5.1f,%5.1f)", io.MousePos.x, io.MousePos.y);
@@ -272,6 +352,22 @@ int main(int argc, const char* argv[])
                 ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
             }
             ImGui::End();
+
+            if (lb_clicked) {
+                ImGui::OpenPopup("#select face");
+            }
+            ImVec2 popup_pos(lb_press_pos.x + 10, lb_press_pos.y - 10);
+            ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always, ImVec2(0.0, 1.0));
+            if (select_dispaly = ImGui::BeginPopup("#select face")) {
+                auto v1 = faces[selected_id];
+                auto v2 = faces[selected_id + 1];
+                auto v3 = faces[selected_id + 2];
+                ImGui::Text("triangle %d clicked", selected_id);
+                ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
+                ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
+                ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
+                ImGui::EndPopup();
+            }
         }
 
 
@@ -317,6 +413,7 @@ int main(int argc, const char* argv[])
 
         // 指出光源位置
         if (draw_lights) {
+            glLoadIdentity();
             glPolygonMode(GL_FRONT, GL_FILL);
             glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
             glutSolidSphere(0.05, 10, 10);
@@ -328,6 +425,18 @@ int main(int argc, const char* argv[])
         // 绘制模型
         glLoadIdentity();
         draw_model();
+
+        // 强调被点选的面片
+        if (select_dispaly) {
+            glDisable(GL_LIGHTING);
+            glPolygonMode(GL_FRONT, GL_FILL);
+            glColor3i(0, 0, 0);
+            glBegin(GL_TRIANGLES);
+            glVertex3fv(vertices.data() + faces[selected_id] * 3);
+            glVertex3fv(vertices.data() + faces[selected_id + 1] * 3);
+            glVertex3fv(vertices.data() + faces[selected_id + 2] * 3);
+            glEnd();
+        }
 
         // 还原状态
         glDisable(GL_RESCALE_NORMAL);
@@ -450,7 +559,6 @@ static void draw_model()
 
 static void set_view()
 {
-    glViewport(viewport.x, viewport.y, viewport.w, viewport.h);
     gluPerspective(fovy, 1, 0.1, 20);
 
     float cop_x = 10.0f * sin(D2R(pitch_angle));
@@ -461,4 +569,32 @@ static void set_view()
         0.0f, 0.0f, 0.0f,
         0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
     );
+}
+
+static void draw_model_select()
+{
+    // 水平旋转，注意 Y 轴向上
+    glRotatef(horizonal_angle, 0, 1, 0);
+    //glScalef(0.5f, 0.5f, 0.5f);
+    glTranslatef(0.0f, -0.5f, 0.0f);
+
+    if (enable_wire_view) {
+        glPolygonMode(GL_FRONT, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT, GL_FILL);
+    }
+
+    glInitNames();
+    glPushName(-1);
+    glVertexPointer(3, GL_FLOAT, 0, vertices.data());
+    auto vd = vertices.data();
+    auto fd = faces.data();
+    for (size_t f = 0; f < faces.size(); f += 3) {
+        glLoadName(f);
+        glBegin(GL_TRIANGLES);
+        glVertex3fv(vd + fd[f] * 3);
+        glVertex3fv(vd + fd[f + 1] * 3);
+        glVertex3fv(vd + fd[f + 2] * 3);
+        glEnd();
+    }
 }

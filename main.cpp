@@ -23,7 +23,8 @@ static void draw_coordinate();
 static void set_light_attribute();
 static void set_view();
 static void draw_model();
-static void draw_model_select();
+static void draw_model_select_vertex();
+static void draw_model_select_face();
 
 // Degree to Radian
 inline float D2R(float degree)
@@ -62,10 +63,13 @@ static float horizonal_angle = 45.0f;                                 // 水平�
 static float pitch_angle = 60.0f;                                     // 俯仰角，与 y 轴正方向夹角，单位为度
 static float fovy = 30.0f;                                            // 观察张角
 
+enum {SELECT_NONE = 0, SELECT_VERTEX = 1, SELECT_FACE = 2};
+static int select_mode = SELECT_NONE;                                 // 0：不开启点选，1：选择顶点，2：选择面片
 static bool lb_clicked = false;                                       // 左键点击：按下，不移动，松开
 static ImVec2 lb_press_pos;                                           // 左键按下的位置
-static bool select_dispaly = false;                                   // 显示被选取的面片
+static bool select_dispaly = false;                                   // 强调显示被选取的对象
 static GLint selected_id;
+static GLint select_radius = 2;
 
 struct {
     GLint x, y, w, h;
@@ -175,7 +179,7 @@ int main(int argc, const char* argv[])
         }
 
         // 更新视口参数
-        viewport.w = std::min({(GLuint)io.DisplaySize.x, (GLuint)io.DisplaySize.y, (GLuint)800});
+        viewport.w = std::min({(GLint)io.DisplaySize.x, (GLint)io.DisplaySize.y, (GLint)800});
         viewport.h = viewport.w;
         viewport.x = io.DisplaySize.x - viewport.w;
         viewport.y = (io.DisplaySize.y - viewport.h) / 2;
@@ -213,7 +217,7 @@ int main(int argc, const char* argv[])
 
         // 拾取模式
         GLint hits = 0;
-        if (lb_clicked) {
+        if (lb_clicked && select_mode != SELECT_NONE) {
             glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
             glRenderMode(GL_SELECT);
 
@@ -222,7 +226,7 @@ int main(int argc, const char* argv[])
 
             // 设置模视变换和视口
             glLoadIdentity();
-            gluPickMatrix(lb_press_pos.x, viewport.h - lb_press_pos.y, 1, 1, (GLint*)&viewport);
+            gluPickMatrix(lb_press_pos.x, viewport.h - lb_press_pos.y, select_radius, select_radius, (GLint*)&viewport);
             set_view();
 
             glMatrixMode(GL_MODELVIEW);
@@ -230,15 +234,20 @@ int main(int argc, const char* argv[])
 
             // 绘制模型
             glLoadIdentity();
-            draw_model_select();
+            switch (select_mode) {
+            case SELECT_VERTEX:
+                draw_model_select_vertex();
+                break;
+            case SELECT_FACE:
+                draw_model_select_face();
+                break;
+            }
 
             // 恢复先前矩阵
             glMatrixMode(GL_PROJECTION);
             glPopMatrix();
             glMatrixMode(GL_MODELVIEW);
-            SDL_GL_SwapWindow(window);
-
-            glFlush();
+            glPopMatrix();
 
             // 回到渲染模式并得到选中物体的数目
             hits = glRenderMode(GL_RENDER);
@@ -281,7 +290,7 @@ int main(int argc, const char* argv[])
         // UI 设计代码
         {
             ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(340, 240), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
             ImGui::Begin("Control");
 
             if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
@@ -292,6 +301,12 @@ int main(int argc, const char* argv[])
                     ImGui::Checkbox("draw coordinate", &draw_coord);
                     ImGui::Checkbox("draw lights", &draw_lights);
                     ImGui::Checkbox("wire view", &enable_wire_view);
+                    ImGui::Separator();
+                    ImGui::Text("Select Mode");
+                    ImGui::RadioButton("None", &select_mode, SELECT_NONE); ImGui::SameLine();
+                    ImGui::RadioButton("Vertex", &select_mode, SELECT_VERTEX); ImGui::SameLine();
+                    ImGui::RadioButton("Face", &select_mode, SELECT_FACE);
+                    ImGui::SliderInt("Select Radius", &select_radius, 1, 20);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Material")) {
@@ -350,20 +365,26 @@ int main(int argc, const char* argv[])
             }
             ImGui::End();
 
-            if (lb_clicked && hits >= 1) {
-                ImGui::OpenPopup("#select face");
+            if (select_mode != SELECT_NONE && lb_clicked && hits >= 1) {
+                ImGui::OpenPopup("#select popup");
             }
             ImVec2 popup_pos(lb_press_pos.x + 10, lb_press_pos.y - 10);
             ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always, ImVec2(0.0, 1.0));
-            if (select_dispaly = ImGui::BeginPopup("#select face")) {
-                auto v1 = faces[selected_id];
-                auto v2 = faces[selected_id + 1];
-                auto v3 = faces[selected_id + 2];
-                ImGui::Text("triangle %d clicked", selected_id);
-                ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
-                ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
-                ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
-                ImGui::EndPopup();
+            if (select_dispaly = ImGui::BeginPopup("#select popup")) {
+                if (select_mode == SELECT_VERTEX) {
+                    ImGui::Text("vertex %d clicked", selected_id);
+                    ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
+                    ImGui::EndPopup();
+                } if (select_mode == SELECT_FACE) {
+                    auto v1 = faces[selected_id];
+                    auto v2 = faces[selected_id + 1];
+                    auto v3 = faces[selected_id + 2];
+                    ImGui::Text("triangle %d clicked", selected_id);
+                    ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
+                    ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
+                    ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
+                    ImGui::EndPopup();
+                }
             }
         }
 
@@ -423,8 +444,16 @@ int main(int argc, const char* argv[])
         glLoadIdentity();
         draw_model();
 
+        // 强调被选中的顶点
+        if (select_dispaly && select_mode == SELECT_VERTEX) {
+            glDisable(GL_LIGHTING);
+            glColor3i(0, 0, 0);
+            glTranslatef(vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
+            drawSolidSphere(0.01, 10, 10);
+        }
+
         // 强调被点选的面片
-        if (select_dispaly) {
+        if (select_dispaly && select_mode == SELECT_FACE) {
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);
@@ -568,22 +597,33 @@ static void set_view()
     );
 }
 
-static void draw_model_select()
+static void draw_model_select_vertex()
 {
     // 水平旋转，注意 Y 轴向上
     glRotatef(horizonal_angle, 0, 1, 0);
     //glScalef(0.5f, 0.5f, 0.5f);
     glTranslatef(0.0f, -0.5f, 0.0f);
 
-    if (enable_wire_view) {
-        glPolygonMode(GL_FRONT, GL_LINE);
-    } else {
-        glPolygonMode(GL_FRONT, GL_FILL);
+    glInitNames();
+    glPushName(-1);
+    auto vd = vertices.data();
+    for (size_t v = 0; v < vertices.size(); v += 3) {
+        glLoadName(v);
+        glBegin(GL_POINTS);
+        glVertex3fv(vd + v);
+        glEnd();
     }
+}
+
+static void draw_model_select_face()
+{
+    // 水平旋转，注意 Y 轴向上
+    glRotatef(horizonal_angle, 0, 1, 0);
+    //glScalef(0.5f, 0.5f, 0.5f);
+    glTranslatef(0.0f, -0.5f, 0.0f);
 
     glInitNames();
     glPushName(-1);
-    glVertexPointer(3, GL_FLOAT, 0, vertices.data());
     auto vd = vertices.data();
     auto fd = faces.data();
     for (size_t f = 0; f < faces.size(); f += 3) {

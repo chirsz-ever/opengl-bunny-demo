@@ -297,7 +297,7 @@ int main(int argc, const char* argv[])
                 if (ImGui::BeginTabItem("Global")) {
                     ImGui::ColorEdit3("clear color", clear_color);
                     ImGui::ColorEdit3("global ambient", global_ambient);
-                    ImGui::SliderFloat("fovy", &fovy, 5.0f, 150.0f);
+                    ImGui::SliderFloat("fovy", &fovy, 1.0f, 90.0f);
                     ImGui::Checkbox("draw coordinate", &draw_coord);
                     ImGui::Checkbox("draw lights", &draw_lights);
                     ImGui::Checkbox("wire view", &enable_wire_view);
@@ -372,14 +372,14 @@ int main(int argc, const char* argv[])
             ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always, ImVec2(0.0, 1.0));
             if (select_dispaly = ImGui::BeginPopup("#select popup")) {
                 if (select_mode == SELECT_VERTEX) {
-                    ImGui::Text("vertex %d clicked", selected_id);
+                    ImGui::Text("vertex %d", selected_id);
                     ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
                     ImGui::EndPopup();
                 } if (select_mode == SELECT_FACE) {
                     auto v1 = faces[selected_id];
                     auto v2 = faces[selected_id + 1];
                     auto v3 = faces[selected_id + 2];
-                    ImGui::Text("triangle %d clicked", selected_id);
+                    ImGui::Text("triangle %d", selected_id);
                     ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
                     ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
                     ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
@@ -447,6 +447,7 @@ int main(int argc, const char* argv[])
         // 强调被选中的顶点
         if (select_dispaly && select_mode == SELECT_VERTEX) {
             glDisable(GL_LIGHTING);
+            glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);
             glTranslatef(vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
             drawSolidSphere(0.01, 10, 10);

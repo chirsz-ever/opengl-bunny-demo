@@ -18,7 +18,6 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <GL/glu.h>
-#include <GL/glut.h>
 
 static void draw_coordinate();
 static void set_light_attribute();
@@ -104,9 +103,6 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "Failed to initalized GLEW\n");
         return -1;
     }
-
-    // Init GLUT
-    glutInit(&argc, (char**)argv);
 
     // 加载 Stanford Bunny 数据
     const char *filename = "bunny.obj";
@@ -416,10 +412,10 @@ int main(int argc, const char* argv[])
             glLoadIdentity();
             glPolygonMode(GL_FRONT, GL_FILL);
             glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
-            glutSolidSphere(0.05, 10, 10);
+            drawSolidSphere(0.05, 10, 10);
             glLoadIdentity();
             glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
-            glutSolidSphere(0.05, 10, 10);
+            drawSolidSphere(0.05, 10, 10);
         }
 
         // 绘制模型

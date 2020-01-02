@@ -4,7 +4,7 @@
 #
 # You will need SDL2 (http://www.libsdl.org):
 # Linux:
-#   apt-get install libsdl2-dev
+#   apt-get install libsdl2-dev libglew-dev
 # Mac OS X:
 #   brew install sdl2
 # MSYS2:
@@ -29,7 +29,7 @@ ifeq ($(DEBUG), 1)
 	CXXFLAGS += -g
 endif
 
-LIBS = -lGLU -lGLEW -lglut
+LIBS = -lGLU -lGLEW
 
 ##---------------------------------------------------------------------
 ## BUILD FLAGS PER PLATFORM

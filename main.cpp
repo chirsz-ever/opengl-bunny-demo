@@ -212,6 +212,7 @@ int main(int argc, const char* argv[])
         }
 
         // 拾取模式
+        GLint hits = 0;
         if (lb_clicked) {
             glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
             glRenderMode(GL_SELECT);
@@ -240,7 +241,7 @@ int main(int argc, const char* argv[])
             glFlush();
 
             // 回到渲染模式并得到选中物体的数目
-            const GLint hits = glRenderMode(GL_RENDER);
+            hits = glRenderMode(GL_RENDER);
             printf("hits: %d\n", hits);
             if (hits >= 1) {
                 GLuint minz = select_buffer[1];
@@ -349,7 +350,7 @@ int main(int argc, const char* argv[])
             }
             ImGui::End();
 
-            if (lb_clicked) {
+            if (lb_clicked && hits >= 1) {
                 ImGui::OpenPopup("#select face");
             }
             ImVec2 popup_pos(lb_press_pos.x + 10, lb_press_pos.y - 10);

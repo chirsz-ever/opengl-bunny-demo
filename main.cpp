@@ -68,8 +68,8 @@ static int select_mode = SELECT_NONE;                                 // 0：不
 static bool lb_clicked = false;                                       // 左键点击：按下，不移动，松开
 static ImVec2 lb_press_pos;                                           // 左键按下的位置
 static bool select_dispaly = false;                                   // 强调显示被选取的对象
-static GLint selected_id;
-static GLint select_radius = 2;
+static GLint selected_id;                                             // 被选择的对象在数组中开始位置
+static GLint select_radius = 2;                                       // 选择视口的半径
 
 struct {
     GLint x, y, w, h;
@@ -226,7 +226,7 @@ int main(int argc, const char* argv[])
 
             // 设置模视变换和视口
             glLoadIdentity();
-            gluPickMatrix(lb_press_pos.x, viewport.h - lb_press_pos.y, select_radius, select_radius, (GLint*)&viewport);
+            gluPickMatrix(lb_press_pos.x, viewport.h - lb_press_pos.y, select_radius * 2, select_radius * 2, (GLint*)&viewport);
             set_view();
 
             glMatrixMode(GL_MODELVIEW);
@@ -306,7 +306,7 @@ int main(int argc, const char* argv[])
                     ImGui::RadioButton("None", &select_mode, SELECT_NONE); ImGui::SameLine();
                     ImGui::RadioButton("Vertex", &select_mode, SELECT_VERTEX); ImGui::SameLine();
                     ImGui::RadioButton("Face", &select_mode, SELECT_FACE);
-                    ImGui::SliderInt("Select Radius", &select_radius, 1, 20);
+                    ImGui::SliderInt("Select Radius", &select_radius, 1, 10);
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Material")) {
@@ -370,16 +370,17 @@ int main(int argc, const char* argv[])
             }
             ImVec2 popup_pos(lb_press_pos.x + 10, lb_press_pos.y - 10);
             ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always, ImVec2(0.0, 1.0));
-            if (select_dispaly = ImGui::BeginPopup("#select popup")) {
+            select_dispaly = ImGui::BeginPopup("#select popup");
+            if (select_dispaly) {
                 if (select_mode == SELECT_VERTEX) {
-                    ImGui::Text("vertex %d", selected_id);
+                    ImGui::Text("vertex %d", selected_id / 3);
                     ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
                     ImGui::EndPopup();
                 } if (select_mode == SELECT_FACE) {
                     auto v1 = faces[selected_id];
                     auto v2 = faces[selected_id + 1];
                     auto v3 = faces[selected_id + 2];
-                    ImGui::Text("triangle %d", selected_id);
+                    ImGui::Text("triangle %d", selected_id / 3);
                     ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
                     ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
                     ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);

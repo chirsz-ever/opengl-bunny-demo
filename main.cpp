@@ -69,7 +69,7 @@ static bool lb_clicked = false;                                       // 左键�
 static ImVec2 lb_press_pos;                                           // 左键按下的位置
 static bool select_dispaly = false;                                   // 强调显示被选取的对象
 static GLint selected_id;                                             // 被选择的对象在数组中开始位置
-static GLint select_radius = 2;                                       // 选择视口的半径
+static GLdouble select_radius = 1.0f;                                 // 选择视口的半径
 
 struct {
     GLint x, y, w, h;
@@ -307,7 +307,13 @@ int main(int argc, const char* argv[])
                     ImGui::RadioButton("None", &select_mode, SELECT_NONE); ImGui::SameLine();
                     ImGui::RadioButton("Vertex", &select_mode, SELECT_VERTEX); ImGui::SameLine();
                     ImGui::RadioButton("Face", &select_mode, SELECT_FACE);
-                    ImGui::SliderInt("Select Radius", &select_radius, 1, 10);
+                    {
+                        char current_radius[32];
+                        static int radius_i = select_radius * 2;
+                        sprintf(current_radius, "%.1lf", select_radius);
+                        ImGui::SliderInt("Select Radius", &radius_i, 1, 20, current_radius);
+                        select_radius = (GLdouble)radius_i / 2;
+                    }
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Material")) {

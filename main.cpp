@@ -227,7 +227,7 @@ int main(int argc, const char* argv[])
 
             // 设置模视变换和视口
             glLoadIdentity();
-            gluPickMatrix(lb_press_pos.x, viewport.h - lb_press_pos.y, select_radius * 2, select_radius * 2, (GLint*)&viewport);
+            gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y, select_radius * 2, select_radius * 2, (GLint*)&viewport);
             set_view();
 
             glMatrixMode(GL_MODELVIEW);

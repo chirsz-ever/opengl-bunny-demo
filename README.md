@@ -6,7 +6,7 @@
 
 当前代码基于 OpenGL 2.1。
 
-模型数据来自 [Objects in OBJ format](https://www.prinmath.com/csci5229/OBJ/index.html)，绘制球的代码来自 [opengl画个球_张竞成的博客-CSDN博客](https://blog.csdn.net/zjccoder/article/details/40041273)
+模型数据来自 [Objects in OBJ format](https://www.prinmath.com/csci5229/OBJ/index.html)。
 
 ## 编译方法
 
@@ -34,7 +34,7 @@ $ ./bunny-ui
 
 ## TODO
 
-- [ ] 用三角面片绘制球，先生成数据再用 glDrawElements 绘制
+- [x] 用三角面片绘制球，先生成数据再用 glDrawElements 绘制
 - [ ] 反走样
 - [ ] 跨平台支持
 - [ ] 自定义 shader，升级 OpenGL 版本

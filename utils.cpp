@@ -1,3 +1,4 @@
+#include <GL/glew.h>
 #include "utils.h"
 #include <fstream>
 #include <iostream>
@@ -53,40 +54,94 @@ void load_bunny_data(const char file[], std::vector<GLfloat>& vertices, std::vec
 	}
 }
 
-void drawSolidSphere(GLfloat radius, GLint slices, GLint stacks)
+template <typename T>
+static void push3(std::vector<T> &vertices, T x, T y, T z)
 {
-	float step_z = M_PI / slices;
-	float step_xy = 2 * M_PI / stacks;
-	float x[4], y[4], z[4];
+	vertices.push_back(x);
+	vertices.push_back(y);
+	vertices.push_back(z);
+}
 
-	float angle_z = 0.0;
-	float angle_xy = 0.0;
-	int i = 0, j = 0;
-	glBegin(GL_QUADS);
-	for (i = 0; i < slices; i++) {
-		angle_z = i * step_z;
+void drawSolidSphere(const GLfloat radius, const GLint slices, const GLint stacks)
+{
+	GLfloat step_la = M_PI / stacks;
+	GLfloat step_lo = 2.0f * M_PI / slices;
 
-		for (j = 0; j < stacks; j++) {
-			angle_xy = j * step_xy;
-			x[0] = radius * sin(angle_z) * cos(angle_xy);
-			y[0] = radius * sin(angle_z) * sin(angle_xy);
-			z[0] = radius * cos(angle_z);
+	std::vector<GLfloat> vertices, normals;
+	vertices.reserve(slices * (stacks - 1) * 3 + 6);
+	normals.reserve(slices * (stacks - 1) * 3 + 6);
 
-			x[1] = radius * sin(angle_z + step_z) * cos(angle_xy);
-			y[1] = radius * sin(angle_z + step_z) * sin(angle_xy);
-			z[1] = radius * cos(angle_z + step_z);
-
-			x[2] = radius * sin(angle_z + step_z) * cos(angle_xy + step_xy);
-			y[2] = radius * sin(angle_z + step_z) * sin(angle_xy + step_xy);
-			z[2] = radius * cos(angle_z + step_z);
-
-			x[3] = radius * sin(angle_z) * cos(angle_xy + step_xy);
-			y[3] = radius * sin(angle_z) * sin(angle_xy + step_xy);
-			z[3] = radius * cos(angle_z);
-			for (int k = 0; k < 4; k++) {
-				glVertex3f(x[k], y[k], z[k]);
-			}
+	GLfloat latitude = M_PI / 2.0f;
+	for (int i = 1; i < stacks; ++i) {
+		latitude -= step_la;
+		GLfloat longtitude = 0.0f;
+		for (int j = 0; j < slices; ++j, longtitude += step_lo) {
+			GLfloat x = cos(latitude) * cos(longtitude);
+			GLfloat y = cos(latitude) * sin(longtitude);
+			GLfloat z = sin(latitude);
+			push3(normals, x, y, z);
+			push3(vertices, radius * x, radius * y, radius * z);
 		}
 	}
-	glEnd();
+
+	// North Pole
+	push3(vertices, 0.0f, 0.0f, radius);
+	push3(normals, 0.0f, 0.0f, 1.0f);
+
+	// South Pole
+	push3(vertices, 0.0f, 0.0f, -radius);
+	push3(normals, 0.0f, 0.0f, -1.0f);
+
+	std::vector<GLuint> indices;
+	indices.reserve(slices * stacks * 3);
+
+	for (int i = 0; i < stacks - 2; ++i) {
+		latitude -= step_la;
+		for (int j = 0; j < slices - 1; ++j) {
+			/*
+			 *      v1 -- v2
+			 *      |     |
+			 *      v3 -- v4
+			 */
+			GLuint v1 = i * slices + j;
+			GLuint v2 = v1 + 1;
+			GLuint v3 = (i + 1) * slices + j;
+			GLuint v4 = v3 + 1;
+			push3(indices, v1, v3, v4);
+			push3(indices, v1, v4, v2);
+		}
+
+		// the triangles on the tail and head
+		GLuint v1 = i * slices + slices - 1;
+		GLuint v2 = i * slices;
+		GLuint v3 = (i + 1) * slices + slices - 1;
+		GLuint v4 = (i + 1) * slices;
+		push3(indices, v1, v3, v4);
+		push3(indices, v1, v4, v2);
+	}
+
+	// North Pole
+	GLuint vnorth = vertices.size() / 3 - 2;
+	for (int j = 0; j < slices - 1; ++j) {
+		push3<GLuint>(indices, vnorth, j, j + 1);
+	}
+	push3<GLuint>(indices, vnorth, slices - 1, 0);
+
+	// South Pole
+	GLuint vsouth = vertices.size() / 3 - 1;
+	for (int j = slices * (stacks - 2); j < slices * (stacks - 1) - 1; ++j) {
+		push3<GLuint>(indices, vsouth, j + 1, j);
+	}
+	push3<GLuint>(indices, vsouth, slices * (stacks - 2), slices * (stacks - 1) - 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glVertexPointer(3, GL_FLOAT, 0, vertices.data());
+	glNormalPointer(GL_FLOAT, 0, normals.data());
+	glDrawElements(
+	    GL_TRIANGLES,
+	    indices.size(),
+	    GL_UNSIGNED_INT,
+	    indices.data()
+	);
 }

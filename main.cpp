@@ -442,10 +442,10 @@ int main(int argc, const char* argv[])
             glLoadIdentity();
             glPolygonMode(GL_FRONT, GL_FILL);
             glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
-            drawSolidSphere(0.05, 10, 10);
+            drawSolidSphere(0.05, 16, 16);
             glLoadIdentity();
             glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
-            drawSolidSphere(0.05, 10, 10);
+            drawSolidSphere(0.05, 16, 16);
         }
 
         // 强调被选中的顶点

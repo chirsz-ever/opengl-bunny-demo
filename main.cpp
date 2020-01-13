@@ -415,10 +415,6 @@ int main(int argc, const char* argv[])
         // 背面剔除
         glCullFace(GL_BACK);
 
-        // 提前加载法向量数组
-        glBindBuffer(GL_ARRAY_BUFFER, NBO);
-        glNormalPointer(GL_FLOAT, 0, nullptr);
-
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
 
@@ -437,6 +433,10 @@ int main(int argc, const char* argv[])
             draw_coordinate();
         }
 
+        // 绘制模型
+        glLoadIdentity();
+        draw_model();
+
         // 指出光源位置
         if (draw_lights) {
             glLoadIdentity();
@@ -447,10 +447,6 @@ int main(int argc, const char* argv[])
             glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
             drawSolidSphere(0.05, 10, 10);
         }
-
-        // 绘制模型
-        glLoadIdentity();
-        draw_model();
 
         // 强调被选中的顶点
         if (select_dispaly && select_mode == SELECT_VERTEX) {
@@ -583,6 +579,8 @@ static void draw_model()
     // 画 Stanford Bunny
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glVertexPointer(3, GL_FLOAT, 0, nullptr);
+    glBindBuffer(GL_ARRAY_BUFFER, NBO);
+    glNormalPointer(GL_FLOAT, 0, nullptr);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     glDrawElements(
         GL_TRIANGLES,

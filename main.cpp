@@ -115,6 +115,7 @@ int main(int argc, const char *argv[]) {
     print_glfw_version();
 
     glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
     GLFWwindow *window = glfwCreateWindow(1200, 600, "Stanford Bunny", NULL, NULL);
     if (window == NULL)
         return 1;

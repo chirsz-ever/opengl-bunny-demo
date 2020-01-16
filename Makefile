@@ -2,13 +2,7 @@
 # Cross Platform Makefile
 # Compatible with MSYS2/MINGW, Ubuntu 14.04.1 and Mac OS X
 #
-# You will need SDL2 (http://www.libsdl.org):
-# Linux:
-#   apt-get install libsdl2-dev libglew-dev
-# Mac OS X:
-#   brew install sdl2
-# MSYS2:
-#   pacman -S mingw-w64-i686-SDL
+# You will need GLFW (https://www.glfw.org)
 #
 
 #CXX = g++
@@ -17,7 +11,7 @@
 EXE = bunny-ui
 SOURCES = main.cpp utils.cpp
 IMGUI_SOURCES = imgui.cpp imgui_draw.cpp imgui_widgets.cpp imgui_demo.cpp
-IMGUI_SOURCES += imgui_impl_sdl.cpp imgui_impl_opengl2.cpp
+IMGUI_SOURCES += imgui_impl_glfw.cpp imgui_impl_opengl2.cpp
 OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 IMGUI_OBJS = $(patsubst %.cpp,imgui/%.o,$(IMGUI_SOURCES))
 UNAME_S := $(shell uname -s)
@@ -37,29 +31,28 @@ endif
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Linux"
 	LIBS = -lGLEW
-	LIBS += -lGL -ldl `sdl2-config --libs`
+	LIBS += -lGL `pkg-config --static --libs glfw3`
 
-	CXXFLAGS += `sdl2-config --cflags`
+	CXXFLAGS += `pkg-config --cflags glfw3`
 	CFLAGS = $(CXXFLAGS)
 endif
 
 ifeq ($(UNAME_S), Darwin) #APPLE
 	ECHO_MESSAGE = "Mac OS X"
 	LIBS = -lGLEW
-	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo `sdl2-config --libs`
+	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 	LIBS += -L/usr/local/lib -L/opt/local/lib
+	LIBS += -lglfw
 
-	CXXFLAGS += `sdl2-config --cflags`
 	CXXFLAGS += -I/usr/local/include -I/opt/local/include
 	CFLAGS = $(CXXFLAGS)
 endif
 
 ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
 	ECHO_MESSAGE = "MinGW"
-	LIBS = `pkg-config --libs glew sdl2`
-	LIBS += -lgdi32 -lopengl32 -limm32
+	LIBS += -lglfw3 -lgdi32 -lopengl32 -limm32
 
-	CXXFLAGS += `pkg-config --cflags sdl2`
+	CXXFLAGS += `pkg-config --cflags glfw3`
 	CFLAGS = $(CXXFLAGS)
 endif
 

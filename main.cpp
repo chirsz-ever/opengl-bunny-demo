@@ -21,7 +21,7 @@
 
 static void draw_coordinate();
 static void set_light_attribute();
-static void set_view();
+static void set_lookat();
 static void draw_model();
 static void draw_model_select_vertex();
 static void draw_model_select_face();
@@ -53,7 +53,7 @@ static GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};         // 光源 
 static Material mat = materials[0];                                   // 材质参数
 
 static GLfloat light0_position[4] = { 2.3f, 1.0f, 0.23f, 1.0 };       // 光源 0 位置
-static GLfloat light1_position[4] = { -3.0f, -0.65f, 1.5f, 1.0f };    // 光源 1 位置
+static GLfloat light1_position[4] = { -2.5f, -0.65f, 1.5f, 1.0f };    // 光源 1 位置
 
 static bool draw_coord = false;                                       // 绘制坐标系辅助线
 static bool draw_lights = false;                                      // 绘制光源位置提示球
@@ -224,17 +224,17 @@ int main(int argc, const char* argv[])
 
             glMatrixMode(GL_PROJECTION);
             glPushMatrix();
-
-            // 设置模视变换和视口
             glLoadIdentity();
-            gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y, select_radius * 2, select_radius * 2, (GLint*)&viewport);
-            set_view();
+            gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y,
+                          select_radius * 2, select_radius * 2, (GLint*)&viewport);
+            gluPerspective(fovy, 1, 0.1, 20);
 
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
+            glLoadIdentity();
+            set_lookat();
 
             // 绘制模型
-            glLoadIdentity();
             switch (select_mode) {
             case SELECT_VERTEX:
                 draw_model_select_vertex();
@@ -245,9 +245,9 @@ int main(int argc, const char* argv[])
             }
 
             // 恢复先前矩阵
-            glMatrixMode(GL_PROJECTION);
-            glPopMatrix();
             glMatrixMode(GL_MODELVIEW);
+            glPopMatrix();
+            glMatrixMode(GL_PROJECTION);
             glPopMatrix();
 
             // 回到渲染模式并得到选中物体的数目
@@ -417,14 +417,13 @@ int main(int argc, const char* argv[])
 
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
-
-        // 设置模视变换和视口
         glLoadIdentity();
-        set_view();
+        gluPerspective(fovy, 1, 0.1, 20);
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
+        set_lookat();
 
         // 光源及材质设置
         set_light_attribute();
@@ -434,16 +433,17 @@ int main(int argc, const char* argv[])
         }
 
         // 绘制模型
-        glLoadIdentity();
         draw_model();
 
         // 指出光源位置
         if (draw_lights) {
-            glLoadIdentity();
             glPolygonMode(GL_FRONT, GL_FILL);
+            glLoadIdentity();
+            set_lookat();
             glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
             drawSolidSphere(0.05, 16, 16);
             glLoadIdentity();
+            set_lookat();
             glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
             drawSolidSphere(0.05, 16, 16);
         }
@@ -453,6 +453,12 @@ int main(int argc, const char* argv[])
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);
+            glLoadIdentity();
+            set_lookat();
+            // 水平旋转，注意 Y 轴向上
+            glRotatef(horizonal_angle, 0, 1, 0);
+            //glScalef(0.5f, 0.5f, 0.5f);
+            glTranslatef(0.0f, -0.5f, 0.0f);
             glTranslatef(vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
             drawSolidSphere(0.01, 10, 10);
         }
@@ -462,6 +468,12 @@ int main(int argc, const char* argv[])
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);
+            glLoadIdentity();
+            set_lookat();
+            // 水平旋转，注意 Y 轴向上
+            glRotatef(horizonal_angle, 0, 1, 0);
+            //glScalef(0.5f, 0.5f, 0.5f);
+            glTranslatef(0.0f, -0.5f, 0.0f);
             glBegin(GL_TRIANGLES);
             glVertex3fv(vertices.data() + faces[selected_id] * 3);
             glVertex3fv(vertices.data() + faces[selected_id + 1] * 3);
@@ -496,6 +508,19 @@ int main(int argc, const char* argv[])
     SDL_Quit();
 
     return 0;
+}
+
+static void set_lookat()
+{
+    // 注意y轴朝上
+    float cop_x = 10.0f * 0.707f * sin(D2R(pitch_angle));
+    float cop_y = 10.0f * cos(D2R(pitch_angle));
+    float cop_z = 10.0f * 0.707f * sin(D2R(pitch_angle));
+    gluLookAt(
+        cop_x, cop_y, cop_z,
+        0.0f, 0.0f, 0.0f,
+        0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
+    );
 }
 
 static void draw_coordinate()
@@ -534,7 +559,7 @@ static void draw_coordinate()
     };
     glBindBuffer(GL_VERTEX_ARRAY, 0);
     glVertexPointer(3, GL_FLOAT, 0, coord_lines);
-    glDrawArrays(GL_LINES, 0, sizeof(coord_lines)/sizeof(GLfloat)/3);
+    glDrawArrays(GL_LINES, 0, sizeof(coord_lines) / sizeof(GLfloat) / 3);
 }
 
 // 光源及材质设置
@@ -585,20 +610,6 @@ static void draw_model()
         faces.size(),
         GL_UNSIGNED_INT,
         nullptr
-    );
-}
-
-static void set_view()
-{
-    gluPerspective(fovy, 1, 0.1, 20);
-
-    float cop_x = 10.0f * sin(D2R(pitch_angle));
-    float cop_y = 10.0f * cos(D2R(pitch_angle));
-    float cop_z = 10.0f * sin(D2R(pitch_angle));
-    gluLookAt(
-        cop_x, cop_y, cop_z,
-        0.0f, 0.0f, 0.0f,
-        0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
     );
 }
 

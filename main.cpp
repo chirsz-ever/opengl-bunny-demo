@@ -530,10 +530,21 @@ static void set_lookat()
     float cop_x = 10.0f * 0.707f * sin(D2R(pitch_angle));
     float cop_y = 10.0f * cos(D2R(pitch_angle));
     float cop_z = 10.0f * 0.707f * sin(D2R(pitch_angle));
+
+    float up[3] = {0.0f, 0.0f, 0.0f};
+    if (pitch_angle == 0) {
+        up[0] = up [2] = -1.0f;
+    } else if (pitch_angle == 180) {
+        up[0] = up [2] = 1.0f;
+    } else if (pitch_angle < 180) {
+        up[1] = 1.0f;
+    } else {
+        up[1] = -1.0f;
+    }
     gluLookAt(
         cop_x, cop_y, cop_z,
         0.0f, 0.0f, 0.0f,
-        0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
+        up[0], up[1], up[2]
     );
 }
 

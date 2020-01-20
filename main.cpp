@@ -22,6 +22,7 @@
 static void draw_coordinate();
 static void set_light_attribute();
 static void set_lookat();
+static void model_transform();
 static void draw_model();
 static void draw_model_select_vertex();
 static void draw_model_select_face();
@@ -438,9 +439,11 @@ int main(int argc, const char* argv[])
             draw_coordinate();
         }
 
+        // 保存视图矩阵
         glPushMatrix();
 
         // 绘制模型
+        model_transform();
         draw_model();
 
         // 指出光源位置
@@ -463,10 +466,7 @@ int main(int argc, const char* argv[])
             glColor3i(0, 0, 0);
 
             glLoadTopMatrix();
-            // 水平旋转，注意 Y 轴向上
-            glRotatef(horizonal_angle, 0, 1, 0);
-            //glScalef(0.5f, 0.5f, 0.5f);
-            glTranslatef(0.0f, -0.5f, 0.0f);
+            model_transform();
             glTranslatef(vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
             drawSolidSphere(0.01, 10, 10);
         }
@@ -478,10 +478,7 @@ int main(int argc, const char* argv[])
             glColor3i(0, 0, 0);
 
             glLoadTopMatrix();
-            // 水平旋转，注意 Y 轴向上
-            glRotatef(horizonal_angle, 0, 1, 0);
-            //glScalef(0.5f, 0.5f, 0.5f);
-            glTranslatef(0.0f, -0.5f, 0.0f);
+            model_transform();
             glBegin(GL_TRIANGLES);
             glVertex3fv(vertices.data() + faces[selected_id] * 3);
             glVertex3fv(vertices.data() + faces[selected_id + 1] * 3);
@@ -494,6 +491,7 @@ int main(int argc, const char* argv[])
         glDisable(GL_NORMAL_ARRAY);
         glDisable(GL_CULL_FACE);
         glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
         glPopMatrix();
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
@@ -529,6 +527,14 @@ static void set_lookat()
         0.0f, 0.0f, 0.0f,
         0.0f, pitch_angle < 180 ? 1.0f : -1.0f, 0.0f
     );
+}
+
+static void model_transform()
+{
+    // 水平旋转，注意 Y 轴向上
+    glRotatef(horizonal_angle, 0, 1, 0);
+    //glScalef(0.5f, 0.5f, 0.5f);
+    glTranslatef(0.0f, -0.5f, 0.0f);
 }
 
 static void draw_coordinate()
@@ -596,11 +602,6 @@ static void set_light_attribute()
 
 static void draw_model()
 {
-    // 水平旋转，注意 Y 轴向上
-    glRotatef(horizonal_angle, 0, 1, 0);
-    //glScalef(0.5f, 0.5f, 0.5f);
-    glTranslatef(0.0f, -0.5f, 0.0f);
-
     if (enable_wire_view) {
         glPolygonMode(GL_FRONT, GL_LINE);
     } else {
@@ -623,10 +624,7 @@ static void draw_model()
 
 static void draw_model_select_vertex()
 {
-    // 水平旋转，注意 Y 轴向上
-    glRotatef(horizonal_angle, 0, 1, 0);
-    //glScalef(0.5f, 0.5f, 0.5f);
-    glTranslatef(0.0f, -0.5f, 0.0f);
+    model_transform();
 
     glInitNames();
     glPushName(-1);
@@ -641,10 +639,7 @@ static void draw_model_select_vertex()
 
 static void draw_model_select_face()
 {
-    // 水平旋转，注意 Y 轴向上
-    glRotatef(horizonal_angle, 0, 1, 0);
-    //glScalef(0.5f, 0.5f, 0.5f);
-    glTranslatef(0.0f, -0.5f, 0.0f);
+    model_transform();
 
     glInitNames();
     glPushName(-1);

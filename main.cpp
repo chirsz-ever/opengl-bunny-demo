@@ -479,11 +479,15 @@ int main(int argc, const char* argv[])
 
             glLoadTopMatrix();
             model_transform();
-            glBegin(GL_TRIANGLES);
-            glVertex3fv(vertices.data() + faces[selected_id] * 3);
-            glVertex3fv(vertices.data() + faces[selected_id + 1] * 3);
-            glVertex3fv(vertices.data() + faces[selected_id + 2] * 3);
-            glEnd();
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glVertexPointer(3, GL_FLOAT, 0, nullptr);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            glDrawElements(
+                GL_TRIANGLES,
+                3,
+                GL_UNSIGNED_INT,
+                faces.data() + selected_id
+            );
         }
 
         // 还原状态
@@ -571,7 +575,7 @@ static void draw_coordinate()
         {0.0, -1.0, 10.0},
         {0.0, -1.0, -10.0},
     };
-    glBindBuffer(GL_VERTEX_ARRAY, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexPointer(3, GL_FLOAT, 0, coord_lines);
     glDrawArrays(GL_LINES, 0, sizeof(coord_lines) / sizeof(GLfloat) / 3);
 }

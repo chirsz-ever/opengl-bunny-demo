@@ -125,6 +125,8 @@ int main(int argc, const char* argv[])
 
     printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, vertices.size() / 3, faces.size() / 3, normals.size() / 3);
 
+    GLuint phong = load_program("vshader.glsl", "fshader.glsl");
+
     // 顶点缓冲区对象
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -410,6 +412,7 @@ int main(int argc, const char* argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 渲染 stanford bunny
+        glUseProgram(phong);
         glEnable(GL_VERTEX_ARRAY);
         glEnable(GL_NORMAL_ARRAY);
         glEnable(GL_DEPTH_TEST);
@@ -503,6 +506,7 @@ int main(int argc, const char* argv[])
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         // 渲染 imgui
+        glUseProgram(0);
         ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
         SDL_GL_SwapWindow(window);

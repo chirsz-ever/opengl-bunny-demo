@@ -37,4 +37,5 @@ $ ./bunny-ui
 - [x] 用三角面片绘制球，先生成数据再用 glDrawElements 绘制
 - [ ] 反走样
 - [ ] 跨平台支持
-- [ ] 自定义 shader，升级 OpenGL 版本
+- [x] 自定义 shader
+- [ ] 升级 OpenGL 版本

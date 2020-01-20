@@ -145,3 +145,64 @@ void drawSolidSphere(const GLfloat radius, const GLint slices, const GLint stack
 	    indices.data()
 	);
 }
+
+static GLuint load_shader(const char shader_file[], GLenum shader_type)
+{
+	ifstream fin(shader_file);
+	GLint file_len;
+	GLchar* source;
+
+	fin.seekg(0, ios_base::end);
+	file_len = fin.tellg();
+	source = new GLchar[file_len];
+	fin.seekg(0, ios_base::beg);
+	fin.read(source, file_len);
+
+	GLuint shader = glCreateShader(shader_type);
+	glShaderSource(shader, 1, &source, &file_len);
+	delete [] source;
+	glCompileShader(shader);
+
+	GLint compiled;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+	if (!compiled) {
+		std::cerr << shader_file << " failed to compile:" << std::endl;
+		GLint logSize;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logSize);
+		char* logMsg = new char[logSize];
+		glGetShaderInfoLog(shader, logSize, NULL, logMsg);
+		std::cerr << logMsg << std::endl;
+		delete [] logMsg;
+		exit(EXIT_FAILURE);
+	}
+
+	return shader;
+}
+
+GLuint load_program(const char vertex_shader_file[], const char fragment_shader_file[])
+{
+	GLuint vertex_shader = load_shader(vertex_shader_file, GL_VERTEX_SHADER);
+	GLuint fragment_shader = load_shader(fragment_shader_file, GL_FRAGMENT_SHADER);
+
+	GLuint program = glCreateProgram();
+
+	glAttachShader(program, vertex_shader);
+	glAttachShader(program, fragment_shader);
+
+	glLinkProgram(program);
+
+	GLint linked;
+	glGetProgramiv(program,GL_LINK_STATUS, &linked);
+	if (!linked) {
+		std::cerr << "Shader program failed to link" << std::endl;
+		GLint logSize;
+		glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logSize);
+		char* logMsg = new char[logSize];
+		glGetProgramInfoLog( program, logSize, NULL, logMsg );
+		std::cerr << logMsg << std::endl;
+		delete [] logMsg;
+		exit(EXIT_FAILURE);
+	}
+
+	return program;
+}

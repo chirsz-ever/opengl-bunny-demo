@@ -32,6 +32,12 @@ inline float D2R(float degree)
     return degree * M_PI / 180.0f;
 }
 
+inline void glLoadTopMatrix()
+{
+    glPopMatrix();
+    glPushMatrix();
+}
+
 // 模型数据
 static std::vector<GLfloat> vertices;
 static std::vector<GLuint> faces;
@@ -432,18 +438,20 @@ int main(int argc, const char* argv[])
             draw_coordinate();
         }
 
+        glPushMatrix();
+
         // 绘制模型
         draw_model();
 
         // 指出光源位置
         if (draw_lights) {
             glPolygonMode(GL_FRONT, GL_FILL);
-            glLoadIdentity();
-            set_lookat();
+
+            glLoadTopMatrix();
             glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
             drawSolidSphere(0.05, 16, 16);
-            glLoadIdentity();
-            set_lookat();
+
+            glLoadTopMatrix();
             glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
             drawSolidSphere(0.05, 16, 16);
         }
@@ -453,8 +461,8 @@ int main(int argc, const char* argv[])
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);
-            glLoadIdentity();
-            set_lookat();
+
+            glLoadTopMatrix();
             // 水平旋转，注意 Y 轴向上
             glRotatef(horizonal_angle, 0, 1, 0);
             //glScalef(0.5f, 0.5f, 0.5f);
@@ -468,8 +476,8 @@ int main(int argc, const char* argv[])
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);
-            glLoadIdentity();
-            set_lookat();
+
+            glLoadTopMatrix();
             // 水平旋转，注意 Y 轴向上
             glRotatef(horizonal_angle, 0, 1, 0);
             //glScalef(0.5f, 0.5f, 0.5f);

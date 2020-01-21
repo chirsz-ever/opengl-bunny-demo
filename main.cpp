@@ -82,6 +82,12 @@ struct {
     GLint x, y, w, h;
 } static viewport;                                                    // 视口参数
 
+inline bool inViewPort(const ImVec2& pos)
+{
+    return pos.x >= viewport.x && pos.y >= viewport.y
+           && pos.x < (pos.x + viewport.w) && pos.y < (viewport.y + viewport.h);
+}
+
 const size_t SELECT_BUF_SIZE = 128;
 GLuint select_buffer[SELECT_BUF_SIZE];
 
@@ -197,29 +203,34 @@ int main(int argc, const char* argv[])
 
         // 更新姿态
         lb_clicked = false;
-        if (ImGui::GetMousePos().x > viewport.x) {
+
+        const auto mouse_pos = ImGui::GetMousePos();
+        if (inViewPort(mouse_pos)) {
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                 // 偏航角
-                auto dl = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-                horizonal_angle += dl.x;
-                ImGui::ResetMouseDragDelta(ImGuiMouseButton_Left);
+                auto dd = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+                ImVec2 clicked_pos(mouse_pos.x - dd.x, mouse_pos.y - dd.y);
+                if (inViewPort(clicked_pos)) {
+                    horizonal_angle += io.MouseDelta.x;
+                }
             }
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
                 // 俯仰角
-                auto dr = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
-                pitch_angle -= dr.y;
+                auto dd = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+                ImVec2 clicked_pos(mouse_pos.x - dd.x, mouse_pos.y - dd.y);
+                if (inViewPort(clicked_pos)) {
+                    pitch_angle -= io.MouseDelta.y;
+                }
                 if (pitch_angle >= 360) {
                     pitch_angle -= 360;
                 } else if (pitch_angle < 0) {
                     pitch_angle += 360;
                 }
-                ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
             }
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                lb_press_pos = ImGui::GetMousePos();
+                lb_press_pos = mouse_pos;
             } else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-                auto lb_cur_pos = ImGui::GetMousePos();
-                if (lb_cur_pos.x == lb_press_pos.x && lb_cur_pos.y == lb_press_pos.y) {
+                if (mouse_pos.x == lb_press_pos.x && mouse_pos.y == lb_press_pos.y) {
                     lb_clicked = true;
                 }
             }

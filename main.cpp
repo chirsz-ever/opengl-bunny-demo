@@ -69,6 +69,7 @@ static bool enable_wire_view = false;                                 // 启用�
 static float horizonal_angle = 45.0f;                                 // 水平转动角，单位为度
 static float pitch_angle = 60.0f;                                     // 俯仰角，与 y 轴正方向夹角，单位为度
 static float fovy = 30.0f;                                            // 观察张角
+static float view_distance = 10.0f;                                   // 观察距离
 
 enum {SELECT_NONE = 0, SELECT_VERTEX = 1, SELECT_FACE = 2};
 static int select_mode = SELECT_NONE;                                 // 0：不开启点选，1：选择顶点，2：选择面片
@@ -206,16 +207,17 @@ int main(int argc, const char* argv[])
 
         const auto mouse_pos = ImGui::GetMousePos();
         if (inViewPort(mouse_pos)) {
+            // 偏航角
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                // 偏航角
                 auto dd = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
                 ImVec2 clicked_pos(mouse_pos.x - dd.x, mouse_pos.y - dd.y);
                 if (inViewPort(clicked_pos)) {
                     horizonal_angle += io.MouseDelta.x;
                 }
             }
+
+            // 俯仰角
             if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
-                // 俯仰角
                 auto dd = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
                 ImVec2 clicked_pos(mouse_pos.x - dd.x, mouse_pos.y - dd.y);
                 if (inViewPort(clicked_pos)) {
@@ -227,6 +229,8 @@ int main(int argc, const char* argv[])
                     pitch_angle += 360;
                 }
             }
+
+            // 点选
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                 lb_press_pos = mouse_pos;
             } else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
@@ -234,6 +238,9 @@ int main(int argc, const char* argv[])
                     lb_clicked = true;
                 }
             }
+
+            // 滚轮
+            view_distance -= io.MouseWheel * 0.5f;
         }
 
         // 拾取模式
@@ -383,9 +390,10 @@ int main(int argc, const char* argv[])
             ImGui::Begin("overlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
             {
                 if (ImGui::IsMousePosValid())
-                    ImGui::Text("Mouse Position: %5.1f,%5.1f)", io.MousePos.x, io.MousePos.y);
+                    ImGui::Text("Mouse Position: (%6.1f,%6.1f)", io.MousePos.x, io.MousePos.y);
                 else
                     ImGui::Text("Mouse Position: %-13s", "<invalid>");
+                ImGui::Text("view distance: %.2f", view_distance);
                 ImGui::Text("horizonal angle:%.1f", horizonal_angle);
                 ImGui::Text("pitch angle:%.1f", pitch_angle);
                 ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
@@ -538,9 +546,9 @@ int main(int argc, const char* argv[])
 static void set_lookat()
 {
     // 注意y轴朝上
-    float cop_x = 10.0f * 0.707f * sin(D2R(pitch_angle));
-    float cop_y = 10.0f * cos(D2R(pitch_angle));
-    float cop_z = 10.0f * 0.707f * sin(D2R(pitch_angle));
+    float cop_x = view_distance * sqrt(0.5f) * sin(D2R(pitch_angle));
+    float cop_y = view_distance * cos(D2R(pitch_angle));
+    float cop_z = view_distance * sqrt(0.5f) * sin(D2R(pitch_angle));
 
     float up[3] = {0.0f, 0.0f, 0.0f};
     if (pitch_angle == 0) {

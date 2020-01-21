@@ -483,6 +483,7 @@ int main(int argc, const char* argv[])
 
         // 强调被选中的顶点
         if (select_dispaly && select_mode == SELECT_VERTEX) {
+            glUseProgram(0);
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);
@@ -495,6 +496,7 @@ int main(int argc, const char* argv[])
 
         // 强调被点选的面片
         if (select_dispaly && select_mode == SELECT_FACE) {
+            glUseProgram(0);
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT, GL_FILL);
             glColor3i(0, 0, 0);

@@ -19,6 +19,7 @@
 #include <SDL_opengl.h>
 #include <GL/glu.h>
 
+static void print_sdl_version();
 static void draw_coordinate();
 static void set_light_attribute();
 static void set_lookat();
@@ -102,6 +103,8 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "Error: %s\n", SDL_GetError());
         return -1;
     }
+
+    print_sdl_version();
 
     // Setup window
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -543,6 +546,16 @@ int main(int argc, const char* argv[])
     SDL_Quit();
 
     return 0;
+}
+
+static void print_sdl_version() {
+    SDL_version compiled;
+    SDL_version linked;
+
+    SDL_VERSION(&compiled);
+    SDL_GetVersion(&linked);
+    printf("Compiled with SDL %d.%d.%d\n", compiled.major, compiled.minor, compiled.patch);
+    printf("Running with SDL %d.%d.%d.\n", linked.major, linked.minor, linked.patch);
 }
 
 static void set_lookat()

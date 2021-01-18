@@ -55,7 +55,8 @@ endif
 
 ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
 	ECHO_MESSAGE = "MinGW"
-	LIBS += -lgdi32 -lopengl32 -limm32 `pkg-config --static --libs sdl2`
+	LIBS = -lglu32 `pkg-config --libs glew sdl2`
+	LIBS += -lgdi32 -lopengl32 -limm32
 
 	CXXFLAGS += `pkg-config --cflags sdl2`
 	CFLAGS = $(CXXFLAGS)

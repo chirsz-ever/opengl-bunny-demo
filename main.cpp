@@ -94,7 +94,7 @@ const size_t SELECT_BUF_SIZE = 128;
 GLuint select_buffer[SELECT_BUF_SIZE];
 
 // Main code
-int main(int argc, const char* argv[])
+int main(int argc, char* argv[])
 {
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,

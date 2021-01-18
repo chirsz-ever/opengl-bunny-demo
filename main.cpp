@@ -133,7 +133,11 @@ int main(int argc, char* argv[])
     }
     load_bunny_data(filename, vertices, faces, normals);
 
-    printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, vertices.size() / 3, faces.size() / 3, normals.size() / 3);
+    printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n",
+		    filename,
+		    (unsigned long)vertices.size() / 3,
+		    (unsigned long)faces.size() / 3,
+		    (unsigned long)normals.size() / 3);
 
     GLuint phong = load_program("vshader.glsl", "fshader.glsl");
 

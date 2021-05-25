@@ -637,23 +637,23 @@ static void draw_coordinate()
 static void set_light_attribute()
 {
     // 0 号光源
-    glLightfv (GL_LIGHT0, GL_AMBIENT,  (float*)&light0_ambient);
-    glLightfv (GL_LIGHT0, GL_DIFFUSE,  (float*)&light0_diffuse);
-    glLightfv (GL_LIGHT0, GL_SPECULAR, (float*)&light0_specular);
-    glLightfv (GL_LIGHT0, GL_POSITION, (float*)&light0_position);
+    glLightfv (GL_LIGHT0, GL_AMBIENT,  light0_ambient);
+    glLightfv (GL_LIGHT0, GL_DIFFUSE,  light0_diffuse);
+    glLightfv (GL_LIGHT0, GL_SPECULAR, light0_specular);
+    glLightfv (GL_LIGHT0, GL_POSITION, light0_position);
     // 1 号光源
-    glLightfv (GL_LIGHT1, GL_AMBIENT,  (float*)&light1_ambient);
-    glLightfv (GL_LIGHT1, GL_DIFFUSE,  (float*)&light1_diffuse);
-    glLightfv (GL_LIGHT1, GL_SPECULAR, (float*)&light1_specular);
-    glLightfv (GL_LIGHT1, GL_POSITION, (float*)&light1_position);
+    glLightfv (GL_LIGHT1, GL_AMBIENT,  light1_ambient);
+    glLightfv (GL_LIGHT1, GL_DIFFUSE,  light1_diffuse);
+    glLightfv (GL_LIGHT1, GL_SPECULAR, light1_specular);
+    glLightfv (GL_LIGHT1, GL_POSITION, light1_position);
     // 全局环境光
-    glLightModelfv (GL_LIGHT_MODEL_AMBIENT, (float*)&global_ambient);
+    glLightModelfv (GL_LIGHT_MODEL_AMBIENT, global_ambient);
 
     // 材质设置
-    glMaterialfv(GL_FRONT, GL_AMBIENT,    (float*)&mat.ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE,    (float*)&mat.diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR,   (float*)&mat.specular);
-    //glMaterialfv(GL_FRONT, GL_EMISSION,   (float*)&mat_emission);
+    glMaterialfv(GL_FRONT, GL_AMBIENT,    mat.ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE,    mat.diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR,   mat.specular);
+    //glMaterialfv(GL_FRONT, GL_EMISSION,   mat_emission);
     glMaterialf (GL_FRONT, GL_SHININESS,  mat.shininess);
 }
 

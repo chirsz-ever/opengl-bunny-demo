@@ -1,6 +1,7 @@
 // dear imgui: standalone example application for SDL2 + OpenGL
 // If you are new to dear imgui, see examples/README.txt and documentation at the top of imgui.cpp.
-// (SDL is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan graphics context creation, etc.)
+// (SDL is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan graphics context
+// creation, etc.)
 
 // **DO NOT USE THIS CODE IF YOUR CODE/ENGINE IS USING MODERN OPENGL (SHADERS, VBO, VAO, etc.)**
 // **Prefer using the code in the example_sdl_opengl3/ folder**
@@ -29,13 +30,9 @@ static void draw_model_select_vertex();
 static void draw_model_select_face();
 
 // Degree to Radian
-inline float D2R(float degree)
-{
-    return degree * M_PI / 180.0f;
-}
+inline float D2R(float degree) { return degree * M_PI / 180.0f; }
 
-inline void glLoadTopMatrix()
-{
+inline void glLoadTopMatrix() {
     glPopMatrix();
     glPushMatrix();
 }
@@ -47,58 +44,57 @@ static std::vector<GLfloat> normals;
 static GLuint VBO, IBO, NBO;
 
 // Our state
-static GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f};         // 清屏颜色
-static GLfloat global_ambient[4] = { 0.1, 0.1, 0.1, 0.0 };            // 全局环境光
+static GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
+static GLfloat global_ambient[4] = {0.1, 0.1, 0.1, 0.0};      // 全局环境光
 
-static GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};          // 光源 0 环境光
-static GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};          // 光源 0 漫反射光
-static GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};         // 光源 0 镜面反射光
+static GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 0 环境光
+static GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 0 漫反射光
+static GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 0 镜面反射光
 
-static GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};          // 光源 1 环境光
-static GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};          // 光源 1 漫反射光
-static GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};         // 光源 1 镜面反射光
+static GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 1 环境光
+static GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 1 漫反射光
+static GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 1 镜面反射光
 
-static Material mat = materials[0];                                   // 材质参数
+static Material mat = materials[0]; // 材质参数
 
-static GLfloat light0_position[4] = { 2.3f, 1.0f, 0.23f, 1.0 };       // 光源 0 位置
-static GLfloat light1_position[4] = { -2.5f, -0.65f, 1.5f, 1.0f };    // 光源 1 位置
+static GLfloat light0_position[4] = {2.3f, 1.0f, 0.23f, 1.0};    // 光源 0 位置
+static GLfloat light1_position[4] = {-2.5f, -0.65f, 1.5f, 1.0f}; // 光源 1 位置
 
-static bool draw_coord = false;                                       // 绘制坐标系辅助线
-static bool draw_lights = false;                                      // 绘制光源位置提示球
-static bool enable_wire_view = false;                                 // 启用线框模式绘制模型
+static bool draw_coord = false;       // 绘制坐标系辅助线
+static bool draw_lights = false;      // 绘制光源位置提示球
+static bool enable_wire_view = false; // 启用线框模式绘制模型
 
-static float horizonal_angle = 45.0f;                                 // 水平转动角，单位为度
-static float pitch_angle = 60.0f;                                     // 俯仰角，与 y 轴正方向夹角，单位为度
-static float fovy = 30.0f;                                            // 观察张角
-static float view_distance = 10.0f;                                   // 观察距离
+static float horizonal_angle = 45.0f; // 水平转动角，单位为度
+static float pitch_angle = 60.0f;     // 俯仰角，与 y 轴正方向夹角，单位为度
+static float fovy = 30.0f;            // 观察张角
+static float view_distance = 10.0f;   // 观察距离
 
-enum {SELECT_NONE = 0, SELECT_VERTEX = 1, SELECT_FACE = 2};
-static int select_mode = SELECT_NONE;                                 // 0：不开启点选，1：选择顶点，2：选择面片
-static bool lb_clicked = false;                                       // 左键点击：按下，不移动，松开
-static ImVec2 lb_press_pos;                                           // 左键按下的位置
-static bool select_dispaly = false;                                   // 强调显示被选取的对象
-static GLint selected_id;                                             // 被选择的对象在数组中开始位置
-static GLdouble select_radius = 1.0f;                                 // 选择视口的半径
+enum { SELECT_NONE = 0, SELECT_VERTEX = 1, SELECT_FACE = 2 };
+static int select_mode = SELECT_NONE; // 0：不开启点选，1：选择顶点，2：选择面片
+static bool lb_clicked = false;       // 左键点击：按下，不移动，松开
+static ImVec2 lb_press_pos;           // 左键按下的位置
+static bool select_dispaly = false;   // 强调显示被选取的对象
+static GLint selected_id;             // 被选择的对象在数组中开始位置
+static GLdouble select_radius = 1.0f; // 选择视口的半径
 
 struct {
     GLint x, y, w, h;
-} static viewport;                                                    // 视口参数
+} static viewport; // 视口参数
 
-inline bool inViewPort(const ImVec2& pos)
-{
-    return pos.x >= viewport.x && pos.y >= viewport.y
-           && pos.x < (pos.x + viewport.w) && pos.y < (viewport.y + viewport.h);
+inline bool inViewPort(const ImVec2 &pos) {
+    return pos.x >= viewport.x && pos.y >= viewport.y && pos.x < (pos.x + viewport.w) &&
+           pos.y < (viewport.y + viewport.h);
 }
 
 const size_t SELECT_BUF_SIZE = 128;
 GLuint select_buffer[SELECT_BUF_SIZE];
 
 // Main code
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
     // Setup SDL
-    // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
-    // depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to latest version of SDL is recommended!)
+    // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows
+    // systems, depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to latest version of SDL
+    // is recommended!)
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         fprintf(stderr, "Error: %s\n", SDL_GetError());
         return -1;
@@ -112,14 +108,16 @@ int main(int argc, char* argv[])
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    SDL_Window* window = SDL_CreateWindow("Stanford Bunny", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 600, window_flags);
+    SDL_WindowFlags window_flags =
+        (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    SDL_Window *window =
+        SDL_CreateWindow("Stanford Bunny", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1200, 600, window_flags);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
-    //SDL_GL_SetSwapInterval(1); // Enable vsync
+    // SDL_GL_SetSwapInterval(1); // Enable vsync
 
     // Setup GLEW
-    //glewExperimental = GL_TRUE;
+    // glewExperimental = GL_TRUE;
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         fprintf(stderr, "Failed to initalize GLEW: %s\n", glewGetErrorString(err));
@@ -133,55 +131,38 @@ int main(int argc, char* argv[])
     }
     load_bunny_data(filename, vertices, faces, normals);
 
-    printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n",
-		    filename,
-		    (unsigned long)vertices.size() / 3,
-		    (unsigned long)faces.size() / 3,
-		    (unsigned long)normals.size() / 3);
+    printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, (unsigned long)vertices.size() / 3,
+           (unsigned long)faces.size() / 3, (unsigned long)normals.size() / 3);
 
     GLuint phong = load_program("vshader.glsl", "fshader.glsl");
 
     // 顶点缓冲区对象
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        vertices.size() * sizeof(GLfloat),
-        vertices.data(),
-        GL_STATIC_DRAW
-    );
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // 顶点索引缓冲区对象
     glGenBuffers(1, &IBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(
-        GL_ELEMENT_ARRAY_BUFFER,
-        faces.size() * sizeof(GLuint),
-        faces.data(),
-        GL_STATIC_DRAW
-    );
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), faces.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // 法向量顶点缓冲区对象
     glGenBuffers(1, &NBO);
     glBindBuffer(GL_ARRAY_BUFFER, NBO);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        normals.size() * sizeof(GLfloat),
-        normals.data(),
-        GL_STATIC_DRAW
-    );
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat), normals.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
+    // ImGui::StyleColorsClassic();
 
     // Setup Platform/Renderer bindings
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
@@ -191,10 +172,12 @@ int main(int argc, char* argv[])
     bool done = false;
     while (!done) {
         // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your
+        // inputs.
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
+        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those
+        // two flags.
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
@@ -259,8 +242,8 @@ int main(int argc, char* argv[])
             glMatrixMode(GL_PROJECTION);
             glPushMatrix();
             glLoadIdentity();
-            gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y,
-                          select_radius * 2, select_radius * 2, (GLint*)&viewport);
+            gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y, select_radius * 2, select_radius * 2,
+                          (GLint *)&viewport);
             gluPerspective(fovy, 1, 0.1, 20);
 
             glMatrixMode(GL_MODELVIEW);
@@ -314,7 +297,6 @@ int main(int argc, char* argv[])
                 }
                 printf("selected id: %d\n", selected_id);
             }
-
         }
 
         // Start the Dear ImGui frame
@@ -338,8 +320,10 @@ int main(int argc, char* argv[])
                     ImGui::Checkbox("wire view", &enable_wire_view);
                     ImGui::Separator();
                     ImGui::Text("Select Mode");
-                    ImGui::RadioButton("None", &select_mode, SELECT_NONE); ImGui::SameLine();
-                    ImGui::RadioButton("Vertex", &select_mode, SELECT_VERTEX); ImGui::SameLine();
+                    ImGui::RadioButton("None", &select_mode, SELECT_NONE);
+                    ImGui::SameLine();
+                    ImGui::RadioButton("Vertex", &select_mode, SELECT_VERTEX);
+                    ImGui::SameLine();
                     ImGui::RadioButton("Face", &select_mode, SELECT_FACE);
                     {
                         char current_radius[32];
@@ -358,7 +342,7 @@ int main(int argc, char* argv[])
                     ImGui::Separator();
                     ImGui::Text("built-in materials");
                     int count = 1;
-                    for (const Material& m : materials) {
+                    for (const Material &m : materials) {
                         if (ImGui::Button(m.name)) {
                             mat = m;
                         }
@@ -394,7 +378,10 @@ int main(int argc, char* argv[])
 
             ImGui::SetNextWindowPos(ImVec2(10, io.DisplaySize.y - 10), ImGuiCond_Always, ImVec2(0.0, 1.0));
             ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-            ImGui::Begin("overlay", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+            ImGui::Begin("overlay", nullptr,
+                         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                             ImGuiWindowFlags_NoNav);
             {
                 if (ImGui::IsMousePosValid())
                     ImGui::Text("Mouse Position: (%6.1f,%6.1f)", io.MousePos.x, io.MousePos.y);
@@ -416,9 +403,11 @@ int main(int argc, char* argv[])
             if (select_dispaly) {
                 if (select_mode == SELECT_VERTEX) {
                     ImGui::Text("vertex %d", selected_id / 3);
-                    ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
+                    ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1],
+                                vertices[selected_id + 2]);
                     ImGui::EndPopup();
-                } if (select_mode == SELECT_FACE) {
+                }
+                if (select_mode == SELECT_FACE) {
                     auto v1 = faces[selected_id];
                     auto v2 = faces[selected_id + 1];
                     auto v3 = faces[selected_id + 2];
@@ -430,7 +419,6 @@ int main(int argc, char* argv[])
                 }
             }
         }
-
 
         // Rendering
         ImGui::Render();
@@ -513,12 +501,7 @@ int main(int argc, char* argv[])
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
             glVertexPointer(3, GL_FLOAT, 0, nullptr);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            glDrawElements(
-                GL_TRIANGLES,
-                3,
-                GL_UNSIGNED_INT,
-                faces.data() + selected_id
-            );
+            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, faces.data() + selected_id);
         }
 
         // 还原状态
@@ -562,8 +545,7 @@ static void print_sdl_version() {
     printf("Running with SDL %d.%d.%d.\n", linked.major, linked.minor, linked.patch);
 }
 
-static void set_lookat()
-{
+static void set_lookat() {
     // 注意y轴朝上
     float cop_x = view_distance * sqrt(0.5f) * sin(D2R(pitch_angle));
     float cop_y = view_distance * cos(D2R(pitch_angle));
@@ -571,62 +553,32 @@ static void set_lookat()
 
     float up[3] = {0.0f, 0.0f, 0.0f};
     if (pitch_angle == 0) {
-        up[0] = up [2] = -1.0f;
+        up[0] = up[2] = -1.0f;
     } else if (pitch_angle == 180) {
-        up[0] = up [2] = 1.0f;
+        up[0] = up[2] = 1.0f;
     } else if (pitch_angle < 180) {
         up[1] = 1.0f;
     } else {
         up[1] = -1.0f;
     }
-    gluLookAt(
-        cop_x, cop_y, cop_z,
-        0.0f, 0.0f, 0.0f,
-        up[0], up[1], up[2]
-    );
+    gluLookAt(cop_x, cop_y, cop_z, 0.0f, 0.0f, 0.0f, up[0], up[1], up[2]);
 }
 
-static void model_transform()
-{
+static void model_transform() {
     // 水平旋转，注意 Y 轴向上
     glRotatef(horizonal_angle, 0, 1, 0);
-    //glScalef(0.5f, 0.5f, 0.5f);
+    // glScalef(0.5f, 0.5f, 0.5f);
     glTranslatef(0.0f, -0.5f, 0.0f);
 }
 
-static void draw_coordinate()
-{
+static void draw_coordinate() {
     const static GLfloat coord_lines[][3] = {
-        {10.0, 0.0, 0.0},
-        { -10.0, 0.0, 0.0},
-        {10.0, 1.0, 0.0},
-        { -10.0, 1.0, 0.0},
-        {10.0, 0.0, 1.0},
-        { -10.0, 0.0, 1.0},
-        {10.0, -1.0, 0.0},
-        { -10.0, -1.0, 0.0},
-        {10.0, 0.0, -1.0},
-        { -10.0, 0.0, -1.0},
-        {0.0, 10.0, 0.0},
-        {0.0, -10.0, 0.0},
-        {1.0, 10.0, 0.0},
-        {1.0, -10.0, 0.0},
-        {0.0, 10.0, 1.0},
-        {0.0, -10.0, 1.0},
-        { -1.0, 10.0, 0.0},
-        { -1.0, -10.0, 0.0},
-        {0.0, 10.0, -1.0},
-        {0.0, -10.0, -1.0},
-        {0.0, 0.0, 10.0},
-        {0.0, 0.0, -10.0},
-        {1.0, 0.0, 10.0},
-        {1.0, 0.0, -10.0},
-        {0.0, 1.0, 10.0},
-        {0.0, 1.0, -10.0},
-        { -1.0, 0.0, 10.0},
-        { -1.0, 0.0, -10.0},
-        {0.0, -1.0, 10.0},
-        {0.0, -1.0, -10.0},
+        {10.0, 0.0, 0.0},  {-10.0, 0.0, 0.0}, {10.0, 1.0, 0.0},   {-10.0, 1.0, 0.0}, {10.0, 0.0, 1.0},
+        {-10.0, 0.0, 1.0}, {10.0, -1.0, 0.0}, {-10.0, -1.0, 0.0}, {10.0, 0.0, -1.0}, {-10.0, 0.0, -1.0},
+        {0.0, 10.0, 0.0},  {0.0, -10.0, 0.0}, {1.0, 10.0, 0.0},   {1.0, -10.0, 0.0}, {0.0, 10.0, 1.0},
+        {0.0, -10.0, 1.0}, {-1.0, 10.0, 0.0}, {-1.0, -10.0, 0.0}, {0.0, 10.0, -1.0}, {0.0, -10.0, -1.0},
+        {0.0, 0.0, 10.0},  {0.0, 0.0, -10.0}, {1.0, 0.0, 10.0},   {1.0, 0.0, -10.0}, {0.0, 1.0, 10.0},
+        {0.0, 1.0, -10.0}, {-1.0, 0.0, 10.0}, {-1.0, 0.0, -10.0}, {0.0, -1.0, 10.0}, {0.0, -1.0, -10.0},
     };
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexPointer(3, GL_FLOAT, 0, coord_lines);
@@ -634,31 +586,29 @@ static void draw_coordinate()
 }
 
 // 光源及材质设置
-static void set_light_attribute()
-{
+static void set_light_attribute() {
     // 0 号光源
-    glLightfv (GL_LIGHT0, GL_AMBIENT,  light0_ambient);
-    glLightfv (GL_LIGHT0, GL_DIFFUSE,  light0_diffuse);
-    glLightfv (GL_LIGHT0, GL_SPECULAR, light0_specular);
-    glLightfv (GL_LIGHT0, GL_POSITION, light0_position);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light0_specular);
+    glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
     // 1 号光源
-    glLightfv (GL_LIGHT1, GL_AMBIENT,  light1_ambient);
-    glLightfv (GL_LIGHT1, GL_DIFFUSE,  light1_diffuse);
-    glLightfv (GL_LIGHT1, GL_SPECULAR, light1_specular);
-    glLightfv (GL_LIGHT1, GL_POSITION, light1_position);
+    glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, light1_specular);
+    glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
     // 全局环境光
-    glLightModelfv (GL_LIGHT_MODEL_AMBIENT, global_ambient);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
 
     // 材质设置
-    glMaterialfv(GL_FRONT, GL_AMBIENT,    mat.ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE,    mat.diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR,   mat.specular);
-    //glMaterialfv(GL_FRONT, GL_EMISSION,   mat_emission);
-    glMaterialf (GL_FRONT, GL_SHININESS,  mat.shininess);
+    glMaterialfv(GL_FRONT, GL_AMBIENT, mat.ambient);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat.diffuse);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat.specular);
+    // glMaterialfv(GL_FRONT, GL_EMISSION,   mat_emission);
+    glMaterialf(GL_FRONT, GL_SHININESS, mat.shininess);
 }
 
-static void draw_model()
-{
+static void draw_model() {
     if (enable_wire_view) {
         glPolygonMode(GL_FRONT, GL_LINE);
     } else {
@@ -671,16 +621,10 @@ static void draw_model()
     glBindBuffer(GL_ARRAY_BUFFER, NBO);
     glNormalPointer(GL_FLOAT, 0, nullptr);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glDrawElements(
-        GL_TRIANGLES,
-        faces.size(),
-        GL_UNSIGNED_INT,
-        nullptr
-    );
+    glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
 }
 
-static void draw_model_select_vertex()
-{
+static void draw_model_select_vertex() {
     model_transform();
 
     glInitNames();
@@ -694,8 +638,7 @@ static void draw_model_select_vertex()
     }
 }
 
-static void draw_model_select_face()
-{
+static void draw_model_select_face() {
     model_transform();
 
     glInitNames();

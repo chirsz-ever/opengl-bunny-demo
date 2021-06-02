@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/imgui",
+                "/usr/include/SDL2"
+            ]
+        }
+    ],
+    "version": 4
+}

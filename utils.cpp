@@ -1,10 +1,12 @@
 #include <GL/glew.h>
+
 #include "utils.h"
+
+#include <cmath>
 #include <fstream>
 #include <iostream>
-#include <string>
 #include <limits>
-#include <cmath>
+#include <string>
 
 using namespace std;
 

@@ -8,16 +8,20 @@
 // See imgui_impl_sdl.cpp for details.
 
 #include <GL/glew.h>
+
 #include "imgui.h"
-#include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl2.h"
-#include "utils.h"
+#include "imgui_impl_sdl.h"
+
 #include "materials.h"
-#include <stdio.h>
-#include <cmath>
+#include "utils.h"
+
 #include <algorithm>
+#include <cmath>
+#include <stdio.h>
+
 #include <SDL.h>
-#include <SDL_opengl.h>
+
 #include <GL/glu.h>
 
 static void print_sdl_version();

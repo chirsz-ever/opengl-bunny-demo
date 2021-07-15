@@ -29,7 +29,6 @@ ifeq ($(DEBUG), 1)
 	CXXFLAGS += -g
 endif
 
-LIBS = -lGLU -lGLEW
 
 ##---------------------------------------------------------------------
 ## BUILD FLAGS PER PLATFORM
@@ -37,6 +36,7 @@ LIBS = -lGLU -lGLEW
 
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Linux"
+	LIBS = -lGLU -lGLEW
 	LIBS += -lGL -ldl `sdl2-config --libs`
 
 	CXXFLAGS += `sdl2-config --cflags`
@@ -45,6 +45,7 @@ endif
 
 ifeq ($(UNAME_S), Darwin) #APPLE
 	ECHO_MESSAGE = "Mac OS X"
+	LIBS = -lGLEW
 	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo `sdl2-config --libs`
 	LIBS += -L/usr/local/lib -L/opt/local/lib
 

@@ -22,7 +22,11 @@
 
 #include <SDL.h>
 
+#ifdef __APPLE__
+#include <OpenGL/glu.h>
+#else
 #include <GL/glu.h>
+#endif
 
 static void print_sdl_version();
 static void draw_coordinate();

@@ -29,6 +29,7 @@
 #endif
 
 static void print_sdl_version();
+static void print_opengl_info();
 static void draw_coordinate();
 static void set_light_attribute();
 static void set_lookat();
@@ -123,6 +124,8 @@ int main(int argc, char *argv[]) {
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     // SDL_GL_SetSwapInterval(1); // Enable vsync
+
+    print_opengl_info();
 
     // Setup GLEW
     // glewExperimental = GL_TRUE;
@@ -551,6 +554,10 @@ static void print_sdl_version() {
     SDL_GetVersion(&linked);
     printf("Compiled with SDL %d.%d.%d\n", compiled.major, compiled.minor, compiled.patch);
     printf("Running with SDL %d.%d.%d.\n", linked.major, linked.minor, linked.patch);
+}
+
+static void print_opengl_info() {
+    printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
 }
 
 static void set_lookat() {

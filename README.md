@@ -39,6 +39,6 @@ $ ./bunny-ui
 - [ ] 跨平台支持
 - [x] 自定义 shader
 - [ ] 升级 OpenGL 版本
-  - [ ] 使用 glm 代替 GLU 的矩阵变换函数
+  - [x] 使用 glm 代替 GLU 的矩阵变换函数
   - [ ] 使用顶点属性向着色器传递数据
   - [ ] 使用 select mode 外的方式实现拾取

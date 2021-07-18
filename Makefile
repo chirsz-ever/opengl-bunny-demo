@@ -36,7 +36,7 @@ endif
 
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Linux"
-	LIBS = -lGLU -lGLEW
+	LIBS = -lGLEW
 	LIBS += -lGL -ldl `sdl2-config --libs`
 
 	CXXFLAGS += `sdl2-config --cflags`
@@ -56,7 +56,7 @@ endif
 
 ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
 	ECHO_MESSAGE = "MinGW"
-	LIBS = -lglu32 `pkg-config --libs glew sdl2`
+	LIBS = `pkg-config --libs glew sdl2`
 	LIBS += -lgdi32 -lopengl32 -limm32
 
 	CXXFLAGS += `pkg-config --cflags sdl2`

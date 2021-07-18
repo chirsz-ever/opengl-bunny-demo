@@ -7,7 +7,15 @@
 // **Prefer using the code in the example_sdl_opengl3/ folder**
 // See imgui_impl_sdl.cpp for details.
 
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+
 #include <GL/glew.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_opengl2.h"
@@ -16,17 +24,7 @@
 #include "materials.h"
 #include "utils.h"
 
-#include <algorithm>
-#include <cmath>
-#include <stdio.h>
-
 #include <SDL.h>
-
-#ifdef __APPLE__
-#include <OpenGL/glu.h>
-#else
-#include <GL/glu.h>
-#endif
 
 static void print_sdl_version();
 static void print_opengl_info();
@@ -39,7 +37,7 @@ static void draw_model_select_vertex();
 static void draw_model_select_face();
 
 // Degree to Radian
-inline float D2R(float degree) { return degree * M_PI / 180.0f; }
+inline float D2R(float degree) { return glm::radians(degree); }
 
 inline void glLoadTopMatrix() {
     glPopMatrix();
@@ -252,10 +250,16 @@ int main(int argc, char *argv[]) {
 
             glMatrixMode(GL_PROJECTION);
             glPushMatrix();
-            glLoadIdentity();
-            gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y, select_radius * 2, select_radius * 2,
-                          (GLint *)&viewport);
-            gluPerspective(fovy, 1, 0.1, 20);
+            // glLoadIdentity();
+            // gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y, select_radius * 2, select_radius * 2,
+            //               (GLint *)&viewport);
+            // gluPerspective(fovy, 1, 0.1, 20);
+
+            glm::mat4 proj = glm::pickMatrix(glm::vec2(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y),
+                                             glm::vec2(select_radius * 2, select_radius * 2),
+                                             glm::vec4(viewport.x, viewport.y, viewport.w, viewport.h));
+            proj *= glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 20.0f);
+            glLoadMatrixf(glm::value_ptr(proj));
 
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
@@ -452,8 +456,10 @@ int main(int argc, char *argv[]) {
 
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
-        glLoadIdentity();
-        gluPerspective(fovy, 1, 0.1, 20);
+        // glLoadIdentity();
+        // gluPerspective(fovy, 1, 0.1, 20);
+        glm::mat4 proj = glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 20.0f);
+        glLoadMatrixf(glm::value_ptr(proj));
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -556,9 +562,7 @@ static void print_sdl_version() {
     printf("Running with SDL %d.%d.%d.\n", linked.major, linked.minor, linked.patch);
 }
 
-static void print_opengl_info() {
-    printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
-}
+static void print_opengl_info() { printf("OpenGL Version: %s\n", glGetString(GL_VERSION)); }
 
 static void set_lookat() {
     // 注意y轴朝上
@@ -576,7 +580,10 @@ static void set_lookat() {
     } else {
         up[1] = -1.0f;
     }
-    gluLookAt(cop_x, cop_y, cop_z, 0.0f, 0.0f, 0.0f, up[0], up[1], up[2]);
+    // gluLookAt(cop_x, cop_y, cop_z, 0.0f, 0.0f, 0.0f, up[0], up[1], up[2]);
+    glm::mat4 lookat =
+        glm::lookAt(glm::vec3(cop_x, cop_y, cop_z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(up[0], up[1], up[2]));
+    glMultMatrixf(glm::value_ptr(lookat));
 }
 
 static void model_transform() {

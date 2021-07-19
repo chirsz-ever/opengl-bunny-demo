@@ -24,7 +24,7 @@
 #include "materials.h"
 #include "utils.h"
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 static void print_sdl_version();
 static void print_opengl_info();

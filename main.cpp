@@ -254,6 +254,7 @@ int main(int argc, char *argv[]) {
         }
 
         // 拾取模式
+        // TODO: 使用软件实现
         GLint hits = 0;
         if (lb_clicked && select_mode != SELECT_NONE) {
             glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
@@ -458,6 +459,7 @@ int main(int argc, char *argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 渲染 stanford bunny
+        // TODO: 完全使用自定义 shader 变量传递定点属性和变换矩阵
         glUseProgram(phong);
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
@@ -492,6 +494,7 @@ int main(int argc, char *argv[]) {
         draw_model();
 
         // 指出光源位置
+        // TODO: 绘制光球效果
         if (draw_lights) {
             glPolygonMode(GL_FRONT, GL_FILL);
 
@@ -505,6 +508,7 @@ int main(int argc, char *argv[]) {
         }
 
         // 强调被选中的顶点
+        // TODO: 在 shader 中使用 gl_PointSize 和 gl_PointCoord 绘制圆点
         if (select_dispaly && select_mode == SELECT_VERTEX) {
             glUseProgram(0);
             glDisable(GL_LIGHTING);
@@ -518,6 +522,7 @@ int main(int argc, char *argv[]) {
         }
 
         // 强调被点选的面片
+        // TODO: 使用 glVertexAttrib 设置不变的颜色
         if (select_dispaly && select_mode == SELECT_FACE) {
             glUseProgram(0);
             glDisable(GL_LIGHTING);

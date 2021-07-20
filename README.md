@@ -36,9 +36,13 @@ $ ./bunny-ui
 
 - [x] 用三角面片绘制球，先生成数据再用 glDrawElements 绘制
 - [ ] 反走样
-- [ ] 跨平台支持
+- [x] 跨平台支持
+  - [x] Apple
+  - [x] Linux
+  - [x] MSYS2
 - [x] 自定义 shader
-- [ ] 升级 OpenGL 版本
+- [ ] 面向对象重构
+- [ ] 升级 OpenGL 版本（能够在 OpenGL ES 2.0 下运行）
   - [x] 使用 glm 代替 GLU 的矩阵变换函数
   - [ ] 使用顶点属性向着色器传递数据
   - [ ] 使用 select mode 外的方式实现拾取

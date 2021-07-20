@@ -70,6 +70,7 @@ static GLfloat light1_position[4] = {-2.5f, -0.65f, 1.5f, 1.0f}; // 光源 1 位
 static bool draw_coord = false;       // 绘制坐标系辅助线
 static bool draw_lights = false;      // 绘制光源位置提示球
 static bool enable_wire_view = false; // 启用线框模式绘制模型
+static bool show_back_wire = false;   // 显示模型另一侧的线框
 
 static float horizonal_angle = 45.0f; // 水平转动角，单位为度
 static float pitch_angle = 60.0f;     // 俯仰角，与 y 轴正方向夹角，单位为度
@@ -341,6 +342,10 @@ int main(int argc, char *argv[]) {
                     ImGui::Checkbox("draw coordinate", &draw_coord);
                     ImGui::Checkbox("draw lights", &draw_lights);
                     ImGui::Checkbox("wire view", &enable_wire_view);
+                    if (enable_wire_view) {
+                        ImGui::SameLine();
+                        ImGui::Checkbox("show back wire", &show_back_wire);
+                    }
                     ImGui::Separator();
                     ImGui::Text("Select Mode");
                     ImGui::RadioButton("None", &select_mode, SELECT_NONE);
@@ -459,9 +464,6 @@ int main(int argc, char *argv[]) {
         glEnableClientState(GL_INDEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
-
-        // 背面剔除
-        glCullFace(GL_BACK);
 
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
@@ -644,6 +646,10 @@ static void set_light_attribute() {
 static void draw_model() {
     if (enable_wire_view) {
         glPolygonMode(GL_FRONT, GL_LINE);
+        if (show_back_wire){
+            glDisable(GL_CULL_FACE);
+            glPolygonMode(GL_BACK, GL_LINE);
+        }
     } else {
         glPolygonMode(GL_FRONT, GL_FILL);
     }
@@ -655,6 +661,8 @@ static void draw_model() {
     glNormalPointer(GL_FLOAT, 0, nullptr);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
+    if (show_back_wire)
+        glEnable(GL_CULL_FACE);
 }
 
 static void draw_model_select_vertex() {

@@ -417,13 +417,15 @@ int main(int argc, char *argv[]) {
                 else
                     ImGui::Text("Mouse Position: %-13s", "<invalid>");
                 ImGui::Text("mouse left button dragging: %d", ImGui::IsMouseDragging(ImGuiMouseButton_Left));
+                ImGui::Text("display size: %6.1f %6.1f, scale: %.1f %.1f", io.DisplaySize.x, io.DisplaySize.y,
+                            io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+                ImGui::Text("viewport: %d %d %d %d", viewport.x, viewport.y, viewport.w, viewport.h);
+                ImGui::Separator();
                 ImGui::Text("view distance: %.2f", view_distance);
                 ImGui::Text("horizonal angle:%.1f", horizonal_angle);
                 ImGui::Text("pitch angle:%.1f", pitch_angle);
+                ImGui::Separator();
                 ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
-                ImGui::Text("display size: %6.1f %6.1f", io.DisplaySize.x, io.DisplaySize.y);
-                ImGui::Text("Scale: %.1f %.1f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-                ImGui::Text("viewport: %d %d %d %d", viewport.x, viewport.y, viewport.w, viewport.h);
             }
             ImGui::End();
 
@@ -651,7 +653,7 @@ static void set_light_attribute() {
 static void draw_model() {
     if (enable_wire_view) {
         glPolygonMode(GL_FRONT, GL_LINE);
-        if (show_back_wire){
+        if (show_back_wire) {
             glDisable(GL_CULL_FACE);
             glPolygonMode(GL_BACK, GL_LINE);
         }

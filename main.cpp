@@ -194,6 +194,10 @@ int main(int argc, char *argv[]) {
                 done = true;
         }
 
+        // ImGUI preparation for the frame
+        ImGui_ImplOpenGL2_NewFrame();
+        ImGui_ImplSDL2_NewFrame(window);
+
         // 更新视口参数
         viewport.w = std::min({(GLint)io.DisplaySize.x, (GLint)io.DisplaySize.y, (GLint)800});
         viewport.h = viewport.w;
@@ -321,8 +325,6 @@ int main(int argc, char *argv[]) {
         }
 
         // Start the Dear ImGui frame
-        ImGui_ImplOpenGL2_NewFrame();
-        ImGui_ImplSDL2_NewFrame(window);
         ImGui::NewFrame();
 
         // UI 设计代码

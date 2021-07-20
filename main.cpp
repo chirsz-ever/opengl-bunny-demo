@@ -199,8 +199,14 @@ int main(int argc, char *argv[]) {
         viewport.h = viewport.w;
         viewport.x = io.DisplaySize.x - viewport.w;
         viewport.y = (io.DisplaySize.y - viewport.h) / 2;
-        glViewport(viewport.x, viewport.y, viewport.w, viewport.h);
-
+        // 在 rentia 这样的屏幕上上需要如此适配缩放
+        {
+            float x = viewport.x * io.DisplayFramebufferScale.x;
+            float y = viewport.y * io.DisplayFramebufferScale.y;
+            float w = viewport.w * io.DisplayFramebufferScale.x;
+            float h = viewport.h * io.DisplayFramebufferScale.y;
+            glViewport(x, y, w, h);
+        }
         // 更新姿态
         lb_clicked = false;
 
@@ -402,10 +408,14 @@ int main(int argc, char *argv[]) {
                     ImGui::Text("Mouse Position: (%6.1f,%6.1f)", io.MousePos.x, io.MousePos.y);
                 else
                     ImGui::Text("Mouse Position: %-13s", "<invalid>");
+                ImGui::Text("mouse left button dragging: %d", ImGui::IsMouseDragging(ImGuiMouseButton_Left));
                 ImGui::Text("view distance: %.2f", view_distance);
                 ImGui::Text("horizonal angle:%.1f", horizonal_angle);
                 ImGui::Text("pitch angle:%.1f", pitch_angle);
                 ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
+                ImGui::Text("display size: %6.1f %6.1f", io.DisplaySize.x, io.DisplaySize.y);
+                ImGui::Text("Scale: %.1f %.1f", io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+                ImGui::Text("viewport: %d %d %d %d", viewport.x, viewport.y, viewport.w, viewport.h);
             }
             ImGui::End();
 
@@ -442,14 +452,11 @@ int main(int argc, char *argv[]) {
 
         // 渲染 stanford bunny
         glUseProgram(phong);
-        glEnable(GL_VERTEX_ARRAY);
-        glEnable(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_INDEX_ARRAY);
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_RESCALE_NORMAL);
         glEnable(GL_CULL_FACE);
-        glEnable(GL_LIGHTING);
-        glEnable(GL_LIGHT0);
-        glEnable(GL_LIGHT1);
 
         // 背面剔除
         glCullFace(GL_BACK);
@@ -522,8 +529,10 @@ int main(int argc, char *argv[]) {
         }
 
         // 还原状态
-        glDisable(GL_RESCALE_NORMAL);
-        glDisable(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+        glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         glMatrixMode(GL_MODELVIEW);
         glPopMatrix();

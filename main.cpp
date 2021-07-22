@@ -21,20 +21,9 @@
 #include "materials.h"
 #include "utils.h"
 
-static void print_glfw_version();
-static void print_opengl_info();
-
 static void glfw_error_callback(int error, const char *description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
-
-static void draw_coordinate();
-static void set_light_attribute();
-static void set_lookat();
-static void model_transform();
-static void draw_model();
-static void draw_model_select_vertex();
-static void draw_model_select_face();
 
 // Degree to Radian
 inline float D2R(float degree) { return glm::radians(degree); }
@@ -44,61 +33,76 @@ inline void glLoadTopMatrix() {
     glPushMatrix();
 }
 
-// 模型数据
-static std::vector<GLfloat> vertices;
-static std::vector<GLuint> faces;
-static std::vector<GLfloat> normals;
-static GLuint VBO, IBO, NBO;
+class Application {
+public:
+    Application(int argc, const char *const *argv) : argc(argc), argv(argv) {
+        (void)argc;
+        (void)argv;
+    }
 
-// Our state
-static GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
-static GLfloat global_ambient[4] = {0.1, 0.1, 0.1, 0.0};      // 全局环境光
+    int run() { return main(argc, argv); }
 
-static GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 0 环境光
-static GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 0 漫反射光
-static GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 0 镜面反射光
+private:
+    const int argc;
+    const char *const *const argv;
 
-static GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 1 环境光
-static GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 1 漫反射光
-static GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 1 镜面反射光
+    // 模型数据
+    std::vector<GLfloat> vertices;
+    std::vector<GLuint> faces;
+    std::vector<GLfloat> normals;
+    GLuint VBO, IBO, NBO;
 
-static Material mat = materials[0]; // 材质参数
+    // Our state
+    GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
+    GLfloat global_ambient[4] = {0.1, 0.1, 0.1, 0.0};      // 全局环境光
 
-static GLfloat light0_position[4] = {2.3f, 1.0f, 0.23f, 1.0};    // 光源 0 位置
-static GLfloat light1_position[4] = {-2.5f, -0.65f, 1.5f, 1.0f}; // 光源 1 位置
+    GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 0 环境光
+    GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 0 漫反射光
+    GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 0 镜面反射光
 
-static bool draw_coord = false;       // 绘制坐标系辅助线
-static bool draw_lights = false;      // 绘制光源位置提示球
-static bool enable_wire_view = false; // 启用线框模式绘制模型
-static bool show_back_wire = false;   // 显示模型另一侧的线框
+    GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 1 环境光
+    GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 1 漫反射光
+    GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 1 镜面反射光
 
-static float horizonal_angle = 45.0f; // 水平转动角，单位为度
-static float pitch_angle = 60.0f;     // 俯仰角，与 y 轴正方向夹角，单位为度
-static float fovy = 30.0f;            // 观察张角
-static float view_distance = 10.0f;   // 观察距离
+    Material mat = materials[0]; // 材质参数
 
-enum { SELECT_NONE = 0, SELECT_VERTEX = 1, SELECT_FACE = 2 };
-static int select_mode = SELECT_NONE; // 0：不开启点选，1：选择顶点，2：选择面片
-static bool lb_clicked = false;       // 左键点击：按下，不移动，松开
-static ImVec2 lb_press_pos;           // 左键按下的位置
-static bool select_dispaly = false;   // 强调显示被选取的对象
-static GLint selected_id;             // 被选择的对象在数组中开始位置
-static GLdouble select_radius = 1.0f; // 选择视口的半径
+    GLfloat light0_position[4] = {2.3f, 1.0f, 0.23f, 1.0};    // 光源 0 位置
+    GLfloat light1_position[4] = {-2.5f, -0.65f, 1.5f, 1.0f}; // 光源 1 位置
 
-struct {
-    GLint x, y, w, h;
-} static viewport; // 视口参数
+    bool draw_coord = false;       // 绘制坐标系辅助线
+    bool draw_lights = false;      // 绘制光源位置提示球
+    bool enable_wire_view = false; // 启用线框模式绘制模型
+    bool show_back_wire = false;   // 显示模型另一侧的线框
 
-inline bool inViewPort(const ImVec2 &pos) {
-    return pos.x >= viewport.x && pos.y >= viewport.y && pos.x < (pos.x + viewport.w) &&
-           pos.y < (viewport.y + viewport.h);
-}
+    float horizonal_angle = 45.0f; // 水平转动角，单位为度
+    float pitch_angle = 60.0f;     // 俯仰角，与 y 轴正方向夹角，单位为度
+    float fovy = 30.0f;            // 观察张角
+    float view_distance = 10.0f;   // 观察距离
 
-const size_t SELECT_BUF_SIZE = 128;
-GLuint select_buffer[SELECT_BUF_SIZE];
+    enum { SELECT_NONE = 0, SELECT_VERTEX = 1, SELECT_FACE = 2 };
+    int select_mode = SELECT_NONE; // 0：不开启点选，1：选择顶点，2：选择面片
+    bool lb_clicked = false;       // 左键点击：按下，不移动，松开
+    ImVec2 lb_press_pos;           // 左键按下的位置
+    bool select_dispaly = false;   // 强调显示被选取的对象
+    GLint selected_id;             // 被选择的对象在数组中开始位置
+    GLdouble select_radius = 1.0f; // 选择视口的半径
 
+    // 视口参数
+    struct {
+        GLint x, y, w, h;
+    } viewport;
+
+    bool inViewPort(const ImVec2 &pos) {
+        return pos.x >= viewport.x && pos.y >= viewport.y && pos.x < (pos.x + viewport.w) &&
+               pos.y < (viewport.y + viewport.h);
+    }
+
+    constexpr static size_t SELECT_BUF_SIZE = 128;
+    GLuint select_buffer[SELECT_BUF_SIZE];
+
+    // clang-format off
 // Main code
-int main(int argc, const char *argv[]) {
+int main(int argc, const char*const* argv) {
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -569,9 +573,9 @@ static void print_glfw_version() {
     printf("Running with GLFW %d.%d.%d\n", major, minor, rev);
 }
 
-static void print_opengl_info() { printf("OpenGL Version: %s\n", glGetString(GL_VERSION)); }
+void print_opengl_info() { printf("OpenGL Version: %s\n", glGetString(GL_VERSION)); }
 
-static void set_lookat() {
+void set_lookat() {
     // 注意y轴朝上
     float cop_x = view_distance * sqrt(0.5f) * sin(D2R(pitch_angle));
     float cop_y = view_distance * cos(D2R(pitch_angle));
@@ -593,14 +597,14 @@ static void set_lookat() {
     glMultMatrixf(glm::value_ptr(lookat));
 }
 
-static void model_transform() {
+void model_transform() {
     // 水平旋转，注意 Y 轴向上
     glRotatef(horizonal_angle, 0, 1, 0);
     // glScalef(0.5f, 0.5f, 0.5f);
     glTranslatef(0.0f, -0.5f, 0.0f);
 }
 
-static void draw_coordinate() {
+void draw_coordinate() {
     const static GLfloat coord_lines[][3] = {
         {10.0, 0.0, 0.0},  {-10.0, 0.0, 0.0}, {10.0, 1.0, 0.0},   {-10.0, 1.0, 0.0}, {10.0, 0.0, 1.0},
         {-10.0, 0.0, 1.0}, {10.0, -1.0, 0.0}, {-10.0, -1.0, 0.0}, {10.0, 0.0, -1.0}, {-10.0, 0.0, -1.0},
@@ -615,7 +619,7 @@ static void draw_coordinate() {
 }
 
 // 光源及材质设置
-static void set_light_attribute() {
+void set_light_attribute() {
     // 0 号光源
     glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
@@ -637,7 +641,7 @@ static void set_light_attribute() {
     glMaterialf(GL_FRONT, GL_SHININESS, mat.shininess);
 }
 
-static void draw_model() {
+void draw_model() {
     if (enable_wire_view) {
         glPolygonMode(GL_FRONT, GL_LINE);
         if (show_back_wire) {
@@ -659,7 +663,7 @@ static void draw_model() {
         glEnable(GL_CULL_FACE);
 }
 
-static void draw_model_select_vertex() {
+void draw_model_select_vertex() {
     model_transform();
 
     glInitNames();
@@ -673,7 +677,7 @@ static void draw_model_select_vertex() {
     }
 }
 
-static void draw_model_select_face() {
+void draw_model_select_face() {
     model_transform();
 
     glInitNames();
@@ -688,4 +692,13 @@ static void draw_model_select_face() {
         glVertex3fv(vd + fd[f + 2] * 3);
         glEnd();
     }
+}
+};
+
+// clang-format on
+
+int main(int argc, char **argv) {
+    Application app(argc, argv);
+
+    return app.run();
 }

@@ -334,7 +334,7 @@ int main(int argc, const char *argv[]) {
                 if (ImGui::BeginTabItem("Global")) {
                     ImGui::ColorEdit3("clear color", clear_color);
                     ImGui::ColorEdit3("global ambient", global_ambient);
-                    ImGui::SliderFloat("fovy", &fovy, 1.0f, 90.0f);
+                    ImGui::SliderFloat("fovy", &fovy, 0.1f, 90.0f);
                     ImGui::Checkbox("draw coordinate", &draw_coord);
                     ImGui::Checkbox("draw lights", &draw_lights);
                     ImGui::Checkbox("wire view", &enable_wire_view);
@@ -471,7 +471,7 @@ int main(int argc, const char *argv[]) {
         glPushMatrix();
         // glLoadIdentity();
         // gluPerspective(fovy, 1, 0.1, 20);
-        glm::mat4 proj = glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 20.0f);
+        glm::mat4 proj = glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 1000.0f);
         glLoadMatrixf(glm::value_ptr(proj));
 
         glMatrixMode(GL_MODELVIEW);

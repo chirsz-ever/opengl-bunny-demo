@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <stdexcept>
+#include <string>
 
 #include <GL/glew.h>
 
@@ -25,6 +27,11 @@ static void glfw_error_callback(int error, const char *description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
+static void print_opengl_info() {
+    printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+}
+
+
 // Degree to Radian
 inline float D2R(float degree) { return glm::radians(degree); }
 
@@ -40,17 +47,28 @@ public:
         (void)argv;
     }
 
-    int run() { return main(argc, argv); }
+    int run() {
+        loadModel();
+        initWindow();
+        initOpenGL();
+        initImgui();
+        mainLoop();
+        cleanup();
+        return 0;
+    }
 
 private:
     const int argc;
     const char *const *const argv;
 
+    GLFWwindow *window = nullptr;
+
     // 模型数据
     std::vector<GLfloat> vertices;
     std::vector<GLuint> faces;
     std::vector<GLfloat> normals;
-    GLuint VBO, IBO, NBO;
+
+    GLuint VBO, IBO, NBO, program;
 
     // Our state
     GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
@@ -100,82 +118,103 @@ private:
     constexpr static size_t SELECT_BUF_SIZE = 128;
     GLuint select_buffer[SELECT_BUF_SIZE];
 
+    void initWindow() {
+        // Setup window
+        glfwSetErrorCallback(glfw_error_callback);
+        if (!glfwInit())
+            throw std::runtime_error("glfw init failed");
+
+        print_glfw_version();
+
+        glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
+        glfwWindowHint(GLFW_SAMPLES, 4);
+        window = glfwCreateWindow(1200, 600, "Stanford Bunny", NULL, NULL);
+        if (window == NULL)
+            throw std::runtime_error("glfw create window failed");
+
+        const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        glfwSetWindowPos(window, (mode->width - 1200) / 2, (mode->height - 600) / 2);
+        glfwShowWindow(window);
+    }
+
+    void initOpenGL() {
+        glfwMakeContextCurrent(window);
+        glfwSwapInterval(1); // Enable vsync
+
+        print_opengl_info();
+
+        // Setup GLEW
+        // glewExperimental = GL_TRUE;
+        GLenum err = glewInit();
+        if (err != GLEW_OK) {
+            std::string glewErrorString = (const char*)glewGetErrorString(err);
+            throw std::runtime_error("glew init failed: " + glewErrorString);
+        }
+
+        printf("Compiled with GLEW %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
+        printf("Running with GLEW %s\n", glewGetString(GLEW_VERSION));
+
+        program = load_program("vshader.glsl", "fshader.glsl");
+
+        // 顶点缓冲区对象
+        glGenBuffers(1, &VBO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // 顶点索引缓冲区对象
+        glGenBuffers(1, &IBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), faces.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // 法向量顶点缓冲区对象
+        glGenBuffers(1, &NBO);
+        glBindBuffer(GL_ARRAY_BUFFER, NBO);
+        glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat), normals.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    }
+
+    void loadModel() {
+        // 加载 Stanford Bunny 数据
+        const char *filename = "bunny.obj";
+        if (argc >= 2) {
+            filename = argv[1];
+        }
+        load_bunny_data(filename, vertices, faces, normals);
+
+        printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, (unsigned long)vertices.size() / 3,
+            (unsigned long)faces.size() / 3, (unsigned long)normals.size() / 3);
+    }
+
+    void initImgui() {
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+        // ImGui::StyleColorsClassic();
+
+        // Setup Platform/Renderer bindings
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL2_Init();
+    }
+
+    void cleanup() {
+        ImGui_ImplOpenGL2_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+
     // clang-format off
 // Main code
-int main(int argc, const char*const* argv) {
-    // Setup window
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
-        return 1;
-
-    print_glfw_version();
-
-    glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
-    GLFWwindow *window = glfwCreateWindow(1200, 600, "Stanford Bunny", NULL, NULL);
-    if (window == NULL)
-        return 1;
-    const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-    glfwSetWindowPos(window, (mode->width - 1200) / 2, (mode->height - 600) / 2);
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
-    glfwShowWindow(window);
-
-    print_opengl_info();
-
-    // Setup GLEW
-    // glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-    if (err != GLEW_OK) {
-        fprintf(stderr, "Failed to initalize GLEW: %s\n", glewGetErrorString(err));
-        return -1;
-    }
-
-    // 加载 Stanford Bunny 数据
-    const char *filename = "bunny.obj";
-    if (argc >= 2) {
-        filename = argv[1];
-    }
-    load_bunny_data(filename, vertices, faces, normals);
-
-    printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, (unsigned long)vertices.size() / 3,
-           (unsigned long)faces.size() / 3, (unsigned long)normals.size() / 3);
-
-    GLuint phong = load_program("vshader.glsl", "fshader.glsl");
-
-    // 顶点缓冲区对象
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // 顶点索引缓冲区对象
-    glGenBuffers(1, &IBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), faces.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // 法向量顶点缓冲区对象
-    glGenBuffers(1, &NBO);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat), normals.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+int mainLoop() {
     ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    // ImGui::StyleColorsClassic();
-
-    // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL2_Init();
-
-    // Main loop
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your
@@ -456,7 +495,7 @@ int main(int argc, const char*const* argv) {
 
         // 渲染 stanford bunny
         // TODO: 完全使用自定义 shader 变量传递定点属性和变换矩阵
-        glUseProgram(phong);
+        glUseProgram(program);
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_INDEX_ARRAY);
@@ -554,16 +593,6 @@ int main(int argc, const char*const* argv) {
         glfwMakeContextCurrent(window);
         glfwSwapBuffers(window);
     }
-
-    // Cleanup
-    ImGui_ImplOpenGL2_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
-    return 0;
 }
 
 static void print_glfw_version() {
@@ -572,8 +601,6 @@ static void print_glfw_version() {
     printf("Compiled with GLFW %s\n", glfwGetVersionString());
     printf("Running with GLFW %d.%d.%d\n", major, minor, rev);
 }
-
-void print_opengl_info() { printf("OpenGL Version: %s\n", glGetString(GL_VERSION)); }
 
 void set_lookat() {
     // 注意y轴朝上

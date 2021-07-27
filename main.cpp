@@ -28,9 +28,23 @@ static void glfw_error_callback(int error, const char *description) {
 }
 
 static void print_opengl_info() {
-    printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+    printf("OpenGL version: %s\n", glGetString(GL_VERSION));
 }
 
+static void print_glfw_version() {
+    int major, minor, rev;
+    glfwGetVersion(&major, &minor, &rev);
+
+    printf("GLFW version:\n");
+    printf("\tcompile-time: %s\n", glfwGetVersionString());
+    printf("\t    run-time: %d.%d.%d\n", major, minor, rev);
+}
+
+static void print_glew_version() {
+    printf("GLEW version:\n");
+    printf("\tcompile-time: %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
+    printf("\t    run-time: %s\n", glewGetString(GLEW_VERSION));
+}
 
 // Degree to Radian
 inline float D2R(float degree) { return glm::radians(degree); }
@@ -151,8 +165,7 @@ private:
             throw std::runtime_error("glew init failed: " + glewErrorString);
         }
 
-        printf("Compiled with GLEW %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
-        printf("Running with GLEW %s\n", glewGetString(GLEW_VERSION));
+        print_glew_version();
 
         program = load_program("vshader.glsl", "fshader.glsl");
 
@@ -593,13 +606,6 @@ int mainLoop() {
         glfwMakeContextCurrent(window);
         glfwSwapBuffers(window);
     }
-}
-
-static void print_glfw_version() {
-    int major, minor, rev;
-    glfwGetVersion(&major, &minor, &rev);
-    printf("Compiled with GLFW %s\n", glfwGetVersionString());
-    printf("Running with GLFW %d.%d.%d\n", major, minor, rev);
 }
 
 void set_lookat() {

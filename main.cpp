@@ -224,6 +224,97 @@ private:
         glfwTerminate();
     }
 
+    // 渲染模型
+    // TODO: 完全使用自定义 shader 变量传递定点属性和变换矩阵
+    void draw_model() {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_INDEX_ARRAY);
+        if (enable_wire_view) {
+            glPolygonMode(GL_FRONT, GL_LINE);
+            if (show_back_wire) {
+                glDisable(GL_CULL_FACE);
+                glPolygonMode(GL_BACK, GL_LINE);
+            }
+        } else {
+            glPolygonMode(GL_FRONT, GL_FILL);
+        }
+        glUseProgram(program);
+        model_transform();
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glVertexPointer(3, GL_FLOAT, 0, nullptr);
+        glBindBuffer(GL_ARRAY_BUFFER, NBO);
+        glNormalPointer(GL_FLOAT, 0, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+        glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+        glEnable(GL_CULL_FACE);
+    }
+
+    // 在光源位置绘制小球
+    // TODO: 绘制光球效果
+    void draw_light_balls() {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_INDEX_ARRAY);
+
+        glLoadTopMatrix();
+        glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
+        drawSolidSphere(0.05, 16, 16);
+
+        glLoadTopMatrix();
+        glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
+        drawSolidSphere(0.05, 16, 16);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+    }
+
+    // 强调被选中的顶点
+    // TODO: 在 shader 中使用 gl_PointSize 和 gl_PointCoord 绘制圆点    
+    void draw_selected_vertex() {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_INDEX_ARRAY);
+        glUseProgram(0);
+        glDisable(GL_LIGHTING);
+        glPolygonMode(GL_FRONT, GL_FILL);
+        glColor3i(0, 0, 0);
+
+        glLoadTopMatrix();
+        model_transform();
+        glTranslatef(vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
+        drawSolidSphere(0.01, 10, 10);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+    }
+
+    // 绘制被点选的面片
+    // TODO: 使用 glVertexAttrib 设置不变的颜色
+    void draw_selected_face() {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_INDEX_ARRAY);
+        glDisable(GL_LIGHTING);
+        glUseProgram(0);
+        glPolygonMode(GL_FRONT, GL_FILL);
+        glColor3i(0, 0, 0);
+
+        glLoadTopMatrix();
+        model_transform();
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glVertexPointer(3, GL_FLOAT, 0, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, faces.data() + selected_id);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+    }
+
     // clang-format off
 // Main code
 int mainLoop() {
@@ -506,12 +597,8 @@ int mainLoop() {
         glClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // 渲染 stanford bunny
-        // TODO: 完全使用自定义 shader 变量传递定点属性和变换矩阵
-        glUseProgram(program);
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glEnableClientState(GL_INDEX_ARRAY);
+        // 三维物体渲染
+        // 共用摄像机位姿、投影矩阵、深度缓存
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
 
@@ -528,67 +615,35 @@ int mainLoop() {
         set_lookat();
 
         // 光源及材质设置
+        // 光源位置会受模视矩阵影响，必须和其它步骤处于同一世界坐标系下
         set_light_attribute();
+
+        // 保存视图矩阵
+        glPushMatrix();
 
         if (draw_coord) {
             draw_coordinate();
         }
 
-        // 保存视图矩阵
-        glPushMatrix();
-
         // 绘制模型
-        model_transform();
         draw_model();
 
         // 指出光源位置
-        // TODO: 绘制光球效果
         if (draw_lights) {
-            glPolygonMode(GL_FRONT, GL_FILL);
-
-            glLoadTopMatrix();
-            glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
-            drawSolidSphere(0.05, 16, 16);
-
-            glLoadTopMatrix();
-            glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
-            drawSolidSphere(0.05, 16, 16);
+            draw_light_balls();
         }
 
         // 强调被选中的顶点
-        // TODO: 在 shader 中使用 gl_PointSize 和 gl_PointCoord 绘制圆点
         if (select_dispaly && select_mode == SELECT_VERTEX) {
-            glUseProgram(0);
-            glDisable(GL_LIGHTING);
-            glPolygonMode(GL_FRONT, GL_FILL);
-            glColor3i(0, 0, 0);
-
-            glLoadTopMatrix();
-            model_transform();
-            glTranslatef(vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
-            drawSolidSphere(0.01, 10, 10);
+            draw_selected_vertex();
         }
 
         // 强调被点选的面片
-        // TODO: 使用 glVertexAttrib 设置不变的颜色
         if (select_dispaly && select_mode == SELECT_FACE) {
-            glUseProgram(0);
-            glDisable(GL_LIGHTING);
-            glPolygonMode(GL_FRONT, GL_FILL);
-            glColor3i(0, 0, 0);
-
-            glLoadTopMatrix();
-            model_transform();
-            glBindBuffer(GL_ARRAY_BUFFER, VBO);
-            glVertexPointer(3, GL_FLOAT, 0, nullptr);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, faces.data() + selected_id);
+            draw_selected_face();
         }
 
         // 还原状态
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         glMatrixMode(GL_MODELVIEW);
@@ -603,7 +658,6 @@ int mainLoop() {
         glUseProgram(0);
         ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
-        glfwMakeContextCurrent(window);
         glfwSwapBuffers(window);
     }
 }
@@ -672,28 +726,6 @@ void set_light_attribute() {
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat.specular);
     // glMaterialfv(GL_FRONT, GL_EMISSION,   mat_emission);
     glMaterialf(GL_FRONT, GL_SHININESS, mat.shininess);
-}
-
-void draw_model() {
-    if (enable_wire_view) {
-        glPolygonMode(GL_FRONT, GL_LINE);
-        if (show_back_wire) {
-            glDisable(GL_CULL_FACE);
-            glPolygonMode(GL_BACK, GL_LINE);
-        }
-    } else {
-        glPolygonMode(GL_FRONT, GL_FILL);
-    }
-
-    // 画 Stanford Bunny
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glVertexPointer(3, GL_FLOAT, 0, nullptr);
-    glBindBuffer(GL_ARRAY_BUFFER, NBO);
-    glNormalPointer(GL_FLOAT, 0, nullptr);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
-    if (show_back_wire)
-        glEnable(GL_CULL_FACE);
 }
 
 void draw_model_select_vertex() {

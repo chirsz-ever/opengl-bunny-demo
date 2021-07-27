@@ -101,6 +101,8 @@ private:
     GLfloat light0_position[4] = {2.3f, 1.0f, 0.23f, 1.0};    // 光源 0 位置
     GLfloat light1_position[4] = {-2.5f, -0.65f, 1.5f, 1.0f}; // 光源 1 位置
 
+    GLfloat wire_color[3] = {0.1, 0.1, 0.1};
+
     bool draw_coord = false;       // 绘制坐标系辅助线
     bool draw_lights = false;      // 绘制光源位置提示球
     bool enable_wire_view = false; // 启用线框模式绘制模型
@@ -230,15 +232,6 @@ private:
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_INDEX_ARRAY);
-        if (enable_wire_view) {
-            glPolygonMode(GL_FRONT, GL_LINE);
-            if (show_back_wire) {
-                glDisable(GL_CULL_FACE);
-                glPolygonMode(GL_BACK, GL_LINE);
-            }
-        } else {
-            glPolygonMode(GL_FRONT, GL_FILL);
-        }
         glUseProgram(program);
         model_transform();
 
@@ -252,7 +245,34 @@ private:
         glDisableClientState(GL_VERTEX_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
         glDisableClientState(GL_INDEX_ARRAY);
-        glEnable(GL_CULL_FACE);
+    }
+
+    // 绘制模型线框
+    void draw_wire_model() {
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_INDEX_ARRAY);
+        glPolygonMode(GL_FRONT, GL_LINE);
+        if (show_back_wire) {
+            glDisable(GL_CULL_FACE);
+            glPolygonMode(GL_BACK, GL_LINE);
+        }
+        glUseProgram(0);
+        model_transform();
+
+        glColor3fv(wire_color);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glVertexPointer(3, GL_FLOAT, 0, nullptr);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+        glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
+
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_INDEX_ARRAY);
+        glPolygonMode(GL_FRONT, GL_FILL);
+        if (show_back_wire) {
+            glEnable(GL_CULL_FACE);
+            glPolygonMode(GL_BACK, GL_FILL);
+        }
     }
 
     // 在光源位置绘制小球
@@ -317,7 +337,7 @@ private:
 
     // clang-format off
 // Main code
-int mainLoop() {
+void mainLoop() {
     ImGuiIO &io = ImGui::GetIO();
     while (!glfwWindowShouldClose(window)) {
         // Poll and handle events (inputs, window resize, etc.)
@@ -478,8 +498,10 @@ int mainLoop() {
                     ImGui::Checkbox("draw lights", &draw_lights);
                     ImGui::Checkbox("wire view", &enable_wire_view);
                     if (enable_wire_view) {
-                        ImGui::SameLine();
+                        ImGui::TreePush();
                         ImGui::Checkbox("show back wire", &show_back_wire);
+                        ImGui::ColorEdit3("wire color", wire_color);
+                        ImGui::TreePop();
                     }
                     ImGui::Separator();
                     ImGui::Text("Select Mode");
@@ -625,8 +647,12 @@ int mainLoop() {
             draw_coordinate();
         }
 
-        // 绘制模型
-        draw_model();
+        // 绘制模型或线框
+        if (enable_wire_view) {
+            draw_wire_model();
+        } else {
+            draw_model();
+        }
 
         // 指出光源位置
         if (draw_lights) {

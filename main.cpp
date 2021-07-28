@@ -730,6 +730,8 @@ void model_transform() {
 }
 
 void draw_coordinate() {
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glUseProgram(0);
     const static GLfloat coord_lines[][3] = {
         {10.0, 0.0, 0.0},  {-10.0, 0.0, 0.0}, {10.0, 1.0, 0.0},   {-10.0, 1.0, 0.0}, {10.0, 0.0, 1.0},
         {-10.0, 0.0, 1.0}, {10.0, -1.0, 0.0}, {-10.0, -1.0, 0.0}, {10.0, 0.0, -1.0}, {-10.0, 0.0, -1.0},
@@ -740,7 +742,9 @@ void draw_coordinate() {
     };
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexPointer(3, GL_FLOAT, 0, coord_lines);
+    glColor3f(0.f, 0.f, 0.f);
     glDrawArrays(GL_LINES, 0, sizeof(coord_lines) / sizeof(GLfloat) / 3);
+    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 // 光源及材质设置

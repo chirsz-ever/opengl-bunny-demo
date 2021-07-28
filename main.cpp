@@ -82,7 +82,7 @@ private:
     std::vector<GLuint> faces;
     std::vector<GLfloat> normals;
 
-    GLuint VBO, IBO, NBO, program;
+    GLuint VBO, IBO, NBO, program_phong;
 
     // Our state
     GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
@@ -169,7 +169,10 @@ private:
 
         print_glew_version();
 
-        program = load_program("vshader.glsl", "fshader.glsl");
+        program_phong = load_program("vshader.glsl", "fshader.glsl");
+        glBindAttribLocation(program_phong, 0, "position");
+        glBindAttribLocation(program_phong, 1, "normal");
+        glLinkProgram(program_phong);
 
         // 顶点缓冲区对象
         glGenBuffers(1, &VBO);
@@ -229,22 +232,28 @@ private:
     // 渲染模型
     // TODO: 完全使用自定义 shader 变量传递定点属性和变换矩阵
     void draw_model() {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glEnableClientState(GL_INDEX_ARRAY);
-        glUseProgram(program);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glUseProgram(program_phong);
         model_transform();
 
+        // 顶点坐标
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        // 法向量
         glBindBuffer(GL_ARRAY_BUFFER, NBO);
-        glNormalPointer(GL_FLOAT, 0, nullptr);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        // 顶点索引
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+
         glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
 
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     // 绘制模型线框
@@ -281,13 +290,16 @@ private:
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_INDEX_ARRAY);
+        glUseProgram(0);
 
         glLoadTopMatrix();
         glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
+        glColor3fv(light0_diffuse);
         drawSolidSphere(0.05, 16, 16);
 
         glLoadTopMatrix();
         glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
+        glColor3fv(light1_diffuse);
         drawSolidSphere(0.05, 16, 16);
 
         glDisableClientState(GL_VERTEX_ARRAY);

@@ -25,7 +25,7 @@ void main()
 	// Diffuse，漫反射光，强度与入射角余弦成正比
 	diffuse = vec4(0.0);
 	for (int i = 0; i < LIGHTS; ++i) {
-		float ratio = max(dot(N, -light_in[i]), 0.0);
+		float ratio = max(dot(normalize(N), -light_in[i]), 0.0);
 		diffuse += material.diffuse * gl_LightSource[i].diffuse * ratio;
 	}
 	diffuse.a = 1.0;

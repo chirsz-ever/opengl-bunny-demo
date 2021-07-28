@@ -8,7 +8,7 @@ varying vec3 vertex_coord;       // 在观察坐标系下的顶点坐标
 
 void main()
 {
-	N = normalize(gl_NormalMatrix * normal);
+	N = gl_NormalMatrix * normal;
 
 	vec4 view_position = gl_ModelViewMatrix * vec4(position, 1.0);
 

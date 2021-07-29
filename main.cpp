@@ -54,6 +54,13 @@ inline void glLoadTopMatrix() {
     glPushMatrix();
 }
 
+struct LightSource {
+    GLfloat ambient[4];      // 环境光
+    GLfloat diffuse[4];      // 漫反射
+    GLfloat specular[4];     // 镜面反射
+    GLfloat position[4];     // 位置
+};
+
 class Application {
 public:
     Application(int argc, const char *const *argv) : argc(argc), argv(argv) {
@@ -75,6 +82,8 @@ private:
     const int argc;
     const char *const *const argv;
 
+    constexpr static size_t LIGHTS = 2;
+
     GLFWwindow *window = nullptr;
 
     // 模型数据
@@ -82,27 +91,63 @@ private:
     std::vector<GLuint> faces;
     std::vector<GLfloat> normals;
 
+    // 缓冲区
     GLuint VBO, IBO, NBO;
-    
+
+    // 程序对象
     GLuint program_phong, program_simple;
+
+    // 模型矩阵
+    glm::mat4 mat_model;
+    // 观察矩阵
+    glm::mat4 mat_view;
+    // 投影矩阵
+    glm::mat4 mat_proj;
 
     // Our state
     GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
     GLfloat global_ambient[4] = {0.1, 0.1, 0.1, 0.0};      // 全局环境光
 
-    GLfloat light0_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 0 环境光
-    GLfloat light0_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 0 漫反射光
-    GLfloat light0_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 0 镜面反射光
+    // 材质参数
+    Material material = materials[0];
 
-    GLfloat light1_ambient[4] = {0.1f, 0.1f, 0.1f, 1.0f};  // 光源 1 环境光
-    GLfloat light1_diffuse[4] = {1.0f, 1.0f, 1.0f, 1.0f};  // 光源 1 漫反射光
-    GLfloat light1_specular[4] = {1.0f, 1.0f, 1.0f, 1.0f}; // 光源 1 镜面反射光
+    // 光源参数
+    LightSource lights[LIGHTS] = {
+        {
+            {0.1f, 0.1f, 0.1f, 1.0f},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            {2.3f, 1.0f, 0.23f, 1.0f},
+        },
+        {
+            {0.1f, 0.1f, 0.1f, 1.0f},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            {-2.5f, -0.65f, 1.5f, 1.0f},
+        },
+    };
 
-    Material mat = materials[0]; // 材质参数
+    // uniform 位置
+    struct {
+        struct {
+            GLint ambient;
+            GLint diffuse;
+            GLint specular;
+            GLint position;
+        } lights[LIGHTS];
+        struct {
+            GLint ambient;
+            GLint diffuse;
+            GLint specular;
+            GLint shininess;
+        } material;
+        GLint global_ambient;
+        GLint model;
+        GLint view;
+        GLint proj;
+    } phong_uniform_locations;
 
-    GLfloat light0_position[4] = {2.3f, 1.0f, 0.23f, 1.0};    // 光源 0 位置
-    GLfloat light1_position[4] = {-2.5f, -0.65f, 1.5f, 1.0f}; // 光源 1 位置
-
+    // 线框颜色
     GLfloat wire_color[4] = {0.1, 0.1, 0.1, 1.0};
 
     bool draw_coord = false;       // 绘制坐标系辅助线
@@ -171,11 +216,14 @@ private:
 
         print_glew_version();
 
+        // Phong 光照模型
         program_phong = load_program("shaders/phong.vert", "shaders/phong.frag");
         glBindAttribLocation(program_phong, 0, "position");
         glBindAttribLocation(program_phong, 1, "normal");
         glLinkProgram(program_phong);
+        get_phong_uniform_locations();
 
+        // 简单着色器
         program_simple = load_program("shaders/simple.vert", "shaders/simple.frag");
         glBindAttribLocation(program_simple, 0, "position");
         glBindAttribLocation(program_simple, 2, "color");
@@ -198,7 +246,30 @@ private:
         glBindBuffer(GL_ARRAY_BUFFER, NBO);
         glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat), normals.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
 
+    void get_phong_uniform_locations() {
+#define GET_PHONG_UNIFORM_LOCATION(u) phong_uniform_locations.u = glGetUniformLocation(program_phong, #u);
+        GET_PHONG_UNIFORM_LOCATION(lights[0].ambient);
+        GET_PHONG_UNIFORM_LOCATION(lights[0].diffuse);
+        GET_PHONG_UNIFORM_LOCATION(lights[0].specular);
+        GET_PHONG_UNIFORM_LOCATION(lights[0].position);
+
+        GET_PHONG_UNIFORM_LOCATION(lights[1].ambient);
+        GET_PHONG_UNIFORM_LOCATION(lights[1].diffuse);
+        GET_PHONG_UNIFORM_LOCATION(lights[1].specular);
+        GET_PHONG_UNIFORM_LOCATION(lights[1].position);
+
+        GET_PHONG_UNIFORM_LOCATION(material.ambient);
+        GET_PHONG_UNIFORM_LOCATION(material.diffuse);
+        GET_PHONG_UNIFORM_LOCATION(material.specular);
+        GET_PHONG_UNIFORM_LOCATION(material.shininess);
+
+        GET_PHONG_UNIFORM_LOCATION(global_ambient);
+
+        GET_PHONG_UNIFORM_LOCATION(model);
+        GET_PHONG_UNIFORM_LOCATION(view);
+        GET_PHONG_UNIFORM_LOCATION(proj);
     }
 
     void loadModel() {
@@ -211,6 +282,21 @@ private:
 
         printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, (unsigned long)vertices.size() / 3,
             (unsigned long)faces.size() / 3, (unsigned long)normals.size() / 3);
+    }
+
+    // 设置模型姿态
+    void set_model_transform() {
+        // 水平旋转，注意 Y 轴向上
+        mat_model = glm::rotate(
+            glm::identity<glm::mat4>(),
+            glm::radians(horizonal_angle),
+            glm::vec3{ 0.0f, 1.0f, 0.0f }
+        );
+        mat_model = glm::translate(mat_model, glm::vec3{ 0.0f, -0.5f, 0.0f });
+    }
+
+    void model_transform() {
+        glMultMatrixf(glm::value_ptr(mat_model));
     }
 
     void initImgui() {
@@ -234,6 +320,38 @@ private:
 
         glfwDestroyWindow(window);
         glfwTerminate();
+    }
+
+    // 光源及材质设置
+    void set_phong_uniform() {
+#define SET_PHONG_UNIFORM_N(n, u) glUniform##n##fv(phong_uniform_locations.u, 1, u)
+#define SET_PHONG_UNIFORM4(u) SET_PHONG_UNIFORM_N(4, u)
+#define SET_PHONG_UNIFORM_MATN(n, u) glUniformMatrix##n##fv(phong_uniform_locations.u, 1, GL_FALSE, glm::value_ptr(mat_##u))
+#define SET_PHONG_UNIFORM_MAT4(u) SET_PHONG_UNIFORM_MATN(4, u)
+#define SET_PHONG_UNIFORM1(u) glUniform1f(phong_uniform_locations.u, u)
+        glUseProgram(program_phong);
+        // 0 号光源
+        SET_PHONG_UNIFORM4(lights[0].ambient);
+        SET_PHONG_UNIFORM4(lights[0].diffuse);
+        SET_PHONG_UNIFORM4(lights[0].specular);
+        SET_PHONG_UNIFORM4(lights[0].position);
+        // 1 号光源
+        SET_PHONG_UNIFORM4(lights[1].ambient);
+        SET_PHONG_UNIFORM4(lights[1].diffuse);
+        SET_PHONG_UNIFORM4(lights[1].specular);
+        SET_PHONG_UNIFORM4(lights[1].position);
+        // 全局环境光
+        SET_PHONG_UNIFORM4(global_ambient);
+
+        // 材质设置
+        SET_PHONG_UNIFORM4(material.ambient);
+        SET_PHONG_UNIFORM4(material.diffuse);
+        SET_PHONG_UNIFORM4(material.specular);
+        SET_PHONG_UNIFORM1(material.shininess);
+
+        SET_PHONG_UNIFORM_MAT4(model);
+        SET_PHONG_UNIFORM_MAT4(view);
+        SET_PHONG_UNIFORM_MAT4(proj);
     }
 
     // 渲染模型
@@ -305,13 +423,13 @@ private:
         glUseProgram(0);
 
         glLoadTopMatrix();
-        glTranslatef(light0_position[0], light0_position[1], light0_position[2]);
-        glColor3fv(light0_diffuse);
+        glTranslatef(lights[0].position[0], lights[0].position[1], lights[0].position[2]);
+        glColor3fv(lights[0].diffuse);
         drawSolidSphere(0.05, 16, 16);
 
         glLoadTopMatrix();
-        glTranslatef(light1_position[0], light1_position[1], light1_position[2]);
-        glColor3fv(light1_diffuse);
+        glTranslatef(lights[1].position[0], lights[1].position[1], lights[1].position[2]);
+        glColor3fv(lights[1].diffuse);
         drawSolidSphere(0.05, 16, 16);
 
         glDisableClientState(GL_VERTEX_ARRAY);
@@ -434,10 +552,14 @@ void mainLoop() {
             view_distance -= io.MouseWheel * 0.5f;
         }
 
+        // 设置模型姿态
+        set_model_transform();
+
         // 拾取模式
         // TODO: 使用软件实现
         GLint hits = 0;
         if (lb_clicked && select_mode != SELECT_NONE) {
+            glUseProgram(0);
             glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
             glRenderMode(GL_SELECT);
 
@@ -547,16 +669,16 @@ void mainLoop() {
                     ImGui::EndTabItem();
                 }
                 if (ImGui::BeginTabItem("Material")) {
-                    ImGui::ColorEdit4("ambient", mat.ambient);
-                    ImGui::ColorEdit4("diffuse", mat.diffuse);
-                    ImGui::ColorEdit4("specular", mat.specular);
-                    ImGui::SliderFloat("shininess", &mat.shininess, 0, 128);
+                    ImGui::ColorEdit4("ambient", material.ambient);
+                    ImGui::ColorEdit4("diffuse", material.diffuse);
+                    ImGui::ColorEdit4("specular", material.specular);
+                    ImGui::SliderFloat("shininess", &material.shininess, 0, 128);
                     ImGui::Separator();
                     ImGui::Text("built-in materials");
                     int count = 1;
                     for (const Material &m : materials) {
                         if (ImGui::Button(m.name)) {
-                            mat = m;
+                            material = m;
                         }
                         if (count % 5 != 0)
                             ImGui::SameLine();
@@ -564,25 +686,19 @@ void mainLoop() {
                     }
                     ImGui::EndTabItem();
                 }
-                if (ImGui::BeginTabItem("Light0")) {
-                    ImGui::ColorEdit4("ambient", light0_ambient);
-                    ImGui::ColorEdit4("diffuse", light0_diffuse);
-                    ImGui::ColorEdit4("specular", light0_specular);
-                    ImGui::Text("position:");
-                    ImGui::SliderFloat("x", &light0_position[0], -5.0f, 5.0f);
-                    ImGui::SliderFloat("y", &light0_position[1], -5.0f, 5.0f);
-                    ImGui::SliderFloat("z", &light0_position[2], -5.0f, 5.0f);
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Light1")) {
-                    ImGui::ColorEdit4("ambient", light1_ambient);
-                    ImGui::ColorEdit4("diffuse", light1_diffuse);
-                    ImGui::ColorEdit4("specular", light1_specular);
-                    ImGui::Text("position:");
-                    ImGui::SliderFloat("x", &light1_position[0], -5.0f, 5.0f);
-                    ImGui::SliderFloat("y", &light1_position[1], -5.0f, 5.0f);
-                    ImGui::SliderFloat("z", &light1_position[2], -5.0f, 5.0f);
-                    ImGui::EndTabItem();
+                for (int i = 0; i < LIGHTS; ++i) {
+                    char light_tabname[10];
+                    sprintf(light_tabname, "Light%d", i);
+                    if (ImGui::BeginTabItem(light_tabname)) {
+                        ImGui::ColorEdit4("ambient", lights[i].ambient);
+                        ImGui::ColorEdit4("diffuse", lights[i].diffuse);
+                        ImGui::ColorEdit4("specular", lights[i].specular);
+                        ImGui::Text("position:");
+                        ImGui::SliderFloat("x", &lights[i].position[0], -5.0f, 5.0f);
+                        ImGui::SliderFloat("y", &lights[i].position[1], -5.0f, 5.0f);
+                        ImGui::SliderFloat("z", &lights[i].position[2], -5.0f, 5.0f);
+                        ImGui::EndTabItem();
+                    }
                 }
                 ImGui::EndTabBar();
             }
@@ -653,10 +769,9 @@ void mainLoop() {
 
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
-        // glLoadIdentity();
-        // gluPerspective(fovy, 1, 0.1, 20);
-        glm::mat4 proj = glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 1000.0f);
-        glLoadMatrixf(glm::value_ptr(proj));
+
+        mat_proj = glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 1000.0f);
+        glLoadMatrixf(glm::value_ptr(mat_proj));
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -664,8 +779,7 @@ void mainLoop() {
         set_lookat();
 
         // 光源及材质设置
-        // 光源位置会受模视矩阵影响，必须和其它步骤处于同一世界坐标系下
-        set_light_attribute();
+        set_phong_uniform();
 
         // 保存视图矩阵
         glPushMatrix();
@@ -731,17 +845,11 @@ void set_lookat() {
     } else {
         up[1] = -1.0f;
     }
-    // gluLookAt(cop_x, cop_y, cop_z, 0.0f, 0.0f, 0.0f, up[0], up[1], up[2]);
-    glm::mat4 lookat =
-        glm::lookAt(glm::vec3(cop_x, cop_y, cop_z), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(up[0], up[1], up[2]));
-    glMultMatrixf(glm::value_ptr(lookat));
-}
 
-void model_transform() {
-    // 水平旋转，注意 Y 轴向上
-    glRotatef(horizonal_angle, 0, 1, 0);
-    // glScalef(0.5f, 0.5f, 0.5f);
-    glTranslatef(0.0f, -0.5f, 0.0f);
+    mat_view = glm::lookAt(glm::vec3(cop_x, cop_y, cop_z),
+                       glm::vec3(0.0f, 0.0f, 0.0f),
+                       glm::vec3(up[0], up[1], up[2]));
+    glMultMatrixf(glm::value_ptr(mat_view));
 }
 
 void draw_coordinate() {
@@ -760,29 +868,6 @@ void draw_coordinate() {
     glColor3f(0.f, 0.f, 0.f);
     glDrawArrays(GL_LINES, 0, sizeof(coord_lines) / sizeof(GLfloat) / 3);
     glDisableClientState(GL_VERTEX_ARRAY);
-}
-
-// 光源及材质设置
-void set_light_attribute() {
-    // 0 号光源
-    glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light0_specular);
-    glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
-    // 1 号光源
-    glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
-    glLightfv(GL_LIGHT1, GL_SPECULAR, light1_specular);
-    glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
-    // 全局环境光
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, global_ambient);
-
-    // 材质设置
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat.ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat.diffuse);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, mat.specular);
-    // glMaterialfv(GL_FRONT, GL_EMISSION,   mat_emission);
-    glMaterialf(GL_FRONT, GL_SHININESS, mat.shininess);
 }
 
 void draw_model_select_vertex() {

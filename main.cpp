@@ -82,7 +82,9 @@ private:
     std::vector<GLuint> faces;
     std::vector<GLfloat> normals;
 
-    GLuint VBO, IBO, NBO, program_phong;
+    GLuint VBO, IBO, NBO;
+    
+    GLuint program_phong, program_simple;
 
     // Our state
     GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
@@ -101,7 +103,7 @@ private:
     GLfloat light0_position[4] = {2.3f, 1.0f, 0.23f, 1.0};    // 光源 0 位置
     GLfloat light1_position[4] = {-2.5f, -0.65f, 1.5f, 1.0f}; // 光源 1 位置
 
-    GLfloat wire_color[3] = {0.1, 0.1, 0.1};
+    GLfloat wire_color[4] = {0.1, 0.1, 0.1, 1.0};
 
     bool draw_coord = false;       // 绘制坐标系辅助线
     bool draw_lights = false;      // 绘制光源位置提示球
@@ -173,6 +175,11 @@ private:
         glBindAttribLocation(program_phong, 0, "position");
         glBindAttribLocation(program_phong, 1, "normal");
         glLinkProgram(program_phong);
+
+        program_simple = load_program("shaders/simple.vert", "shaders/simple.frag");
+        glBindAttribLocation(program_simple, 0, "position");
+        glBindAttribLocation(program_simple, 2, "color");
+        glLinkProgram(program_simple);
 
         // 顶点缓冲区对象
         glGenBuffers(1, &VBO);
@@ -258,25 +265,30 @@ private:
 
     // 绘制模型线框
     void draw_wire_model() {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_INDEX_ARRAY);
+        glEnableVertexAttribArray(0);
+        // 需要禁用索引为 2 的顶点属性数组，否则绘制函数会认为
+        // 定点属性数据被 glVertexAttribPointer 指定，而 glVertexAttrib 无用
+        glDisableVertexAttribArray(2);
         glPolygonMode(GL_FRONT, GL_LINE);
         if (show_back_wire) {
             glDisable(GL_CULL_FACE);
             glPolygonMode(GL_BACK, GL_LINE);
         }
-        glUseProgram(0);
+        glUseProgram(program_simple);
         model_transform();
 
-        glColor3fv(wire_color);
-
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glVertexAttrib4fv(2, wire_color);
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+
         glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
 
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glDisableVertexAttribArray(0);
         glPolygonMode(GL_FRONT, GL_FILL);
         if (show_back_wire) {
             glEnable(GL_CULL_FACE);
@@ -327,24 +339,26 @@ private:
     }
 
     // 绘制被点选的面片
-    // TODO: 使用 glVertexAttrib 设置不变的颜色
     void draw_selected_face() {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_INDEX_ARRAY);
-        glDisable(GL_LIGHTING);
-        glUseProgram(0);
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glColor3i(0, 0, 0);
+        glEnableVertexAttribArray(0);
+        glDisableVertexAttribArray(2);
+        glUseProgram(program_simple);
 
         glLoadTopMatrix();
         model_transform();
+
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glVertexPointer(3, GL_FLOAT, 0, nullptr);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+        glVertexAttrib3f(2, 0.f, 0.f, 0.f);
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
         glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, faces.data() + selected_id);
 
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glDisableVertexAttribArray(0);
     }
 
     // clang-format off

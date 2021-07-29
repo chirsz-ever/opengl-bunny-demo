@@ -675,14 +675,24 @@ void mainLoop() {
                     ImGui::SliderFloat("shininess", &material.shininess, 0, 128);
                     ImGui::Separator();
                     ImGui::Text("built-in materials");
-                    int count = 1;
-                    for (const Material &m : materials) {
+                    // Manually wrapping
+                    ImGuiStyle& style = ImGui::GetStyle();
+                    constexpr size_t material_count = sizeof(materials) / sizeof(Material);
+                    static std::vector<float> button_widths(material_count);
+                    float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+                    for (size_t i = 0; i < material_count; ++i) {
+                        const auto& m = materials[i]; 
                         if (ImGui::Button(m.name)) {
                             material = m;
                         }
-                        if (count % 5 != 0)
-                            ImGui::SameLine();
-                        count += 1;
+                        button_widths[i] = ImGui::GetItemRectSize().x;
+                        float last_button_x2 = ImGui::GetItemRectMax().x;
+                        // Expected position if next button was on same line
+                        if (i + 1 < material_count) {
+                            float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_widths[i + 1];
+                            if (next_button_x2 < window_visible_x2)
+                                ImGui::SameLine();
+                        }
                     }
                     ImGui::EndTabItem();
                 }

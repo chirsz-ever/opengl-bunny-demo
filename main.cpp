@@ -352,9 +352,10 @@ private:
 
         glVertexAttrib3f(2, 0.f, 0.f, 0.f);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, faces.data() + selected_id);
+        // 使用 IBO 时，最后参数表示 IBO 中以字节为单位的偏移
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, reinterpret_cast<const void*>(selected_id * sizeof(GLuint)));
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

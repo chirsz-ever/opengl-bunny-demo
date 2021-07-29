@@ -7,8 +7,8 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
 
-varying vec3 N;                  // 归一化法向量
-varying vec3 vertex_coord;       // 在观察坐标系下的顶点坐标
+varying vec3 v_normal;           // 法向量
+varying vec3 v_viewcoord;       // 在观察坐标系下的顶点坐标
 
 #if __VERSION__ < 150
 mat3 inverse(mat3 m) {
@@ -35,11 +35,11 @@ mat3 inverse(mat3 m) {
 
 void main()
 {
-	N = transpose(inverse(mat3(view * model))) * normal;
+	v_normal = transpose(inverse(mat3(view * model))) * normal;
 	
 	vec4 view_position = view * model * vec4(position, 1.0);
 	
-	vertex_coord = vec3(view_position);
+	v_viewcoord = vec3(view_position);
 
 	gl_Position =  proj * view_position;
 }

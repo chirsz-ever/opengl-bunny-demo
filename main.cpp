@@ -169,7 +169,7 @@ private:
 
         print_glew_version();
 
-        program_phong = load_program("vshader.glsl", "fshader.glsl");
+        program_phong = load_program("shaders/phong.vert", "shaders/phong.frag");
         glBindAttribLocation(program_phong, 0, "position");
         glBindAttribLocation(program_phong, 1, "normal");
         glLinkProgram(program_phong);

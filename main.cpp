@@ -27,9 +27,7 @@ static void glfw_error_callback(int error, const char *description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-static void print_opengl_info() {
-    printf("OpenGL version: %s\n", glGetString(GL_VERSION));
-}
+static void print_opengl_info() { printf("OpenGL version: %s\n", glGetString(GL_VERSION)); }
 
 static void print_glfw_version() {
     int major, minor, rev;
@@ -55,10 +53,10 @@ inline void glLoadTopMatrix() {
 }
 
 struct LightSource {
-    GLfloat ambient[4];      // 环境光
-    GLfloat diffuse[4];      // 漫反射
-    GLfloat specular[4];     // 镜面反射
-    GLfloat position[4];     // 位置
+    GLfloat ambient[4];  // 环境光
+    GLfloat diffuse[4];  // 漫反射
+    GLfloat specular[4]; // 镜面反射
+    GLfloat position[4]; // 位置
 };
 
 class Application {
@@ -168,7 +166,6 @@ private:
 
 #define SET_SIMPLE_UNIFORM_MAT4(u) SET_UNIFORM_MAT_N(simple, 4, u)
 
-
     // 线框颜色
     GLfloat wire_color[4] = {0.1, 0.1, 0.1, 1.0};
 
@@ -232,7 +229,7 @@ private:
         // glewExperimental = GL_TRUE;
         GLenum err = glewInit();
         if (err != GLEW_OK) {
-            std::string glewErrorString = (const char*)glewGetErrorString(err);
+            std::string glewErrorString = (const char *)glewGetErrorString(err);
             throw std::runtime_error("glew init failed: " + glewErrorString);
         }
 
@@ -309,23 +306,17 @@ private:
         load_bunny_data(filename, vertices, faces, normals);
 
         printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, (unsigned long)vertices.size() / 3,
-            (unsigned long)faces.size() / 3, (unsigned long)normals.size() / 3);
+               (unsigned long)faces.size() / 3, (unsigned long)normals.size() / 3);
     }
 
     // 设置模型姿态
     void set_model_transform() {
         // 水平旋转，注意 Y 轴向上
-        mat_model = glm::rotate(
-            glm::identity<glm::mat4>(),
-            glm::radians(horizonal_angle),
-            glm::vec3{ 0.0f, 1.0f, 0.0f }
-        );
-        mat_model = glm::translate(mat_model, glm::vec3{ 0.0f, -0.5f, 0.0f });
+        mat_model = glm::rotate(glm::identity<glm::mat4>(), glm::radians(horizonal_angle), glm::vec3{0.0f, 1.0f, 0.0f});
+        mat_model = glm::translate(mat_model, glm::vec3{0.0f, -0.5f, 0.0f});
     }
 
-    void model_transform() {
-        glMultMatrixf(glm::value_ptr(mat_model));
-    }
+    void model_transform() { glMultMatrixf(glm::value_ptr(mat_model)); }
 
     void initImgui() {
         // Setup Dear ImGui context
@@ -465,7 +456,7 @@ private:
     }
 
     // 强调被选中的顶点
-    // TODO: 在 shader 中使用 gl_PointSize 和 gl_PointCoord 绘制圆点    
+    // TODO: 在 shader 中使用 gl_PointSize 和 gl_PointCoord 绘制圆点
     void draw_selected_vertex() {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_INDEX_ARRAY);
@@ -498,7 +489,7 @@ private:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
         // 使用 IBO 时，最后参数表示 IBO 中以字节为单位的偏移
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, reinterpret_cast<const void*>(selected_id * sizeof(GLuint)));
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, reinterpret_cast<const void *>(selected_id * sizeof(GLuint)));
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

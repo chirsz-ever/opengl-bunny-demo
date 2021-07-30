@@ -399,6 +399,33 @@ private:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
+    // 画坐标轴
+    // TODO: 使用顶点缓存
+    void draw_coordinate() {
+        glEnableVertexAttribArray(0);
+        glDisableVertexAttribArray(2);
+        glUseProgram(program_simple);
+        glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(glm::identity<glm::mat4>()));
+
+        const static GLfloat coord_lines[][3] = {
+            {10.0, 0.0, 0.0},  {-10.0, 0.0, 0.0}, {10.0, 1.0, 0.0},   {-10.0, 1.0, 0.0}, {10.0, 0.0, 1.0},
+            {-10.0, 0.0, 1.0}, {10.0, -1.0, 0.0}, {-10.0, -1.0, 0.0}, {10.0, 0.0, -1.0}, {-10.0, 0.0, -1.0},
+            {0.0, 10.0, 0.0},  {0.0, -10.0, 0.0}, {1.0, 10.0, 0.0},   {1.0, -10.0, 0.0}, {0.0, 10.0, 1.0},
+            {0.0, -10.0, 1.0}, {-1.0, 10.0, 0.0}, {-1.0, -10.0, 0.0}, {0.0, 10.0, -1.0}, {0.0, -10.0, -1.0},
+            {0.0, 0.0, 10.0},  {0.0, 0.0, -10.0}, {1.0, 0.0, 10.0},   {1.0, 0.0, -10.0}, {0.0, 1.0, 10.0},
+            {0.0, 1.0, -10.0}, {-1.0, 0.0, 10.0}, {-1.0, 0.0, -10.0}, {0.0, -1.0, 10.0}, {0.0, -1.0, -10.0},
+        };
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, coord_lines);
+
+        glVertexAttrib3f(2, 0.f, 0.f, 0.f);
+
+        glDrawArrays(GL_LINES, 0, sizeof(coord_lines) / sizeof(GLfloat) / 3);
+
+        glDisableVertexAttribArray(0);
+    }
+
     // 绘制模型线框
     void draw_wire_model() {
         glEnableVertexAttribArray(0);
@@ -879,24 +906,6 @@ void set_lookat() {
                        glm::vec3(0.0f, 0.0f, 0.0f),
                        glm::vec3(up[0], up[1], up[2]));
     glMultMatrixf(glm::value_ptr(mat_view));
-}
-
-void draw_coordinate() {
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glUseProgram(0);
-    const static GLfloat coord_lines[][3] = {
-        {10.0, 0.0, 0.0},  {-10.0, 0.0, 0.0}, {10.0, 1.0, 0.0},   {-10.0, 1.0, 0.0}, {10.0, 0.0, 1.0},
-        {-10.0, 0.0, 1.0}, {10.0, -1.0, 0.0}, {-10.0, -1.0, 0.0}, {10.0, 0.0, -1.0}, {-10.0, 0.0, -1.0},
-        {0.0, 10.0, 0.0},  {0.0, -10.0, 0.0}, {1.0, 10.0, 0.0},   {1.0, -10.0, 0.0}, {0.0, 10.0, 1.0},
-        {0.0, -10.0, 1.0}, {-1.0, 10.0, 0.0}, {-1.0, -10.0, 0.0}, {0.0, 10.0, -1.0}, {0.0, -10.0, -1.0},
-        {0.0, 0.0, 10.0},  {0.0, 0.0, -10.0}, {1.0, 0.0, 10.0},   {1.0, 0.0, -10.0}, {0.0, 1.0, 10.0},
-        {0.0, 1.0, -10.0}, {-1.0, 0.0, 10.0}, {-1.0, 0.0, -10.0}, {0.0, -1.0, 10.0}, {0.0, -1.0, -10.0},
-    };
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glVertexPointer(3, GL_FLOAT, 0, coord_lines);
-    glColor3f(0.f, 0.f, 0.f);
-    glDrawArrays(GL_LINES, 0, sizeof(coord_lines) / sizeof(GLfloat) / 3);
-    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 void draw_model_select_vertex() {

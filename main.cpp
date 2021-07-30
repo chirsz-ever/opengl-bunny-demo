@@ -130,22 +130,44 @@ private:
     // uniform 位置
     struct {
         struct {
-            GLint ambient;
-            GLint diffuse;
-            GLint specular;
-            GLint position;
-        } lights[LIGHTS];
+            GLint model;
+            GLint view;
+            GLint proj;
+        } simple;
         struct {
-            GLint ambient;
-            GLint diffuse;
-            GLint specular;
-            GLint shininess;
-        } material;
-        GLint global_ambient;
-        GLint model;
-        GLint view;
-        GLint proj;
-    } phong_uniform_locations;
+            struct {
+                GLint ambient;
+                GLint diffuse;
+                GLint specular;
+                GLint position;
+            } lights[LIGHTS];
+            struct {
+                GLint ambient;
+                GLint diffuse;
+                GLint specular;
+                GLint shininess;
+            } material;
+            GLint global_ambient;
+            GLint model;
+            GLint view;
+            GLint proj;
+        } phong;
+    } uniform_locations;
+
+#define GET_UNIFORM_LOCATION(p, u) uniform_locations.p.u = glGetUniformLocation(program_##p, #u)
+#define SET_UNIFORM_N(p, n, u) glUniform##n##fv(uniform_locations.p.u, 1, u)
+#define SET_UNIFORM_1(p, u) glUniform1f(uniform_locations.p.u, u)
+#define SET_UNIFORM_MAT_N(p, n, u) glUniformMatrix##n##fv(uniform_locations.p.u, 1, GL_FALSE, glm::value_ptr(mat_##u))
+
+#define GET_PHONG_UNIFORM_LOCATION(u) GET_UNIFORM_LOCATION(phong, u)
+#define GET_SIMPLE_UNIFORM_LOCATION(u) GET_UNIFORM_LOCATION(simple, u)
+
+#define SET_PHONG_UNIFORM4(u) SET_UNIFORM_N(phong, 4, u)
+#define SET_PHONG_UNIFORM1(u) SET_UNIFORM_1(phong, u)
+#define SET_PHONG_UNIFORM_MAT4(u) SET_UNIFORM_MAT_N(phong, 4, u)
+
+#define SET_SIMPLE_UNIFORM_MAT4(u) SET_UNIFORM_MAT_N(simple, 4, u)
+
 
     // 线框颜色
     GLfloat wire_color[4] = {0.1, 0.1, 0.1, 1.0};
@@ -228,6 +250,7 @@ private:
         glBindAttribLocation(program_simple, 0, "position");
         glBindAttribLocation(program_simple, 2, "color");
         glLinkProgram(program_simple);
+        get_simple_uniform_locations();
 
         // 顶点缓冲区对象
         glGenBuffers(1, &VBO);
@@ -249,7 +272,6 @@ private:
     }
 
     void get_phong_uniform_locations() {
-#define GET_PHONG_UNIFORM_LOCATION(u) phong_uniform_locations.u = glGetUniformLocation(program_phong, #u);
         GET_PHONG_UNIFORM_LOCATION(lights[0].ambient);
         GET_PHONG_UNIFORM_LOCATION(lights[0].diffuse);
         GET_PHONG_UNIFORM_LOCATION(lights[0].specular);
@@ -270,6 +292,12 @@ private:
         GET_PHONG_UNIFORM_LOCATION(model);
         GET_PHONG_UNIFORM_LOCATION(view);
         GET_PHONG_UNIFORM_LOCATION(proj);
+    }
+
+    void get_simple_uniform_locations() {
+        GET_SIMPLE_UNIFORM_LOCATION(model);
+        GET_SIMPLE_UNIFORM_LOCATION(view);
+        GET_SIMPLE_UNIFORM_LOCATION(proj);
     }
 
     void loadModel() {
@@ -324,11 +352,6 @@ private:
 
     // 光源及材质设置
     void set_phong_uniform() {
-#define SET_PHONG_UNIFORM_N(n, u) glUniform##n##fv(phong_uniform_locations.u, 1, u)
-#define SET_PHONG_UNIFORM4(u) SET_PHONG_UNIFORM_N(4, u)
-#define SET_PHONG_UNIFORM_MATN(n, u) glUniformMatrix##n##fv(phong_uniform_locations.u, 1, GL_FALSE, glm::value_ptr(mat_##u))
-#define SET_PHONG_UNIFORM_MAT4(u) SET_PHONG_UNIFORM_MATN(4, u)
-#define SET_PHONG_UNIFORM1(u) glUniform1f(phong_uniform_locations.u, u)
         glUseProgram(program_phong);
         // 0 号光源
         SET_PHONG_UNIFORM4(lights[0].ambient);
@@ -354,13 +377,17 @@ private:
         SET_PHONG_UNIFORM_MAT4(proj);
     }
 
+    void set_simple_uniform() {
+        glUseProgram(program_simple);
+        SET_SIMPLE_UNIFORM_MAT4(view);
+        SET_SIMPLE_UNIFORM_MAT4(proj);
+    }
+
     // 渲染模型
-    // TODO: 完全使用自定义 shader 变量传递定点属性和变换矩阵
     void draw_model() {
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
         glUseProgram(program_phong);
-        model_transform();
 
         // 顶点坐标
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -393,7 +420,7 @@ private:
             glPolygonMode(GL_BACK, GL_LINE);
         }
         glUseProgram(program_simple);
-        model_transform();
+        SET_SIMPLE_UNIFORM_MAT4(model);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -461,9 +488,7 @@ private:
         glEnableVertexAttribArray(0);
         glDisableVertexAttribArray(2);
         glUseProgram(program_simple);
-
-        glLoadTopMatrix();
-        model_transform();
+        SET_SIMPLE_UNIFORM_MAT4(model);
 
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
@@ -790,6 +815,9 @@ void mainLoop() {
 
         // 光源及材质设置
         set_phong_uniform();
+
+        // 简单着色器参数设置
+        set_simple_uniform();
 
         // 保存视图矩阵
         glPushMatrix();

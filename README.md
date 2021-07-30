@@ -42,7 +42,9 @@ $ ./bunny-ui
   - [x] MSYS2
 - [x] 自定义 shader
 - [x] 面向对象重构
-- [ ] 升级 OpenGL 版本（能够在 OpenGL ES 2.0 下运行）
+- [ ] 升级 OpenGL 版本
   - [x] 使用 glm 代替 GLU 的矩阵变换函数
-  - [ ] 使用顶点属性向着色器传递数据
+  - [x] 使用顶点属性向着色器传递数据
   - [ ] 使用 select mode 外的方式实现拾取
+  - [ ] OpenGL 3.2 core profile
+  - [ ] OpenGL ES 2.0

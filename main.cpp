@@ -250,20 +250,23 @@ private:
         glLinkProgram(program_simple);
         get_simple_uniform_locations();
 
+        GLuint buffers[] = {VBO, IBO, NBO};
+        glGenBuffers(std::end(buffers) - std::begin(buffers), buffers);
+        VBO = buffers[0];
+        IBO = buffers[1];
+        NBO = buffers[2];
+
         // 顶点缓冲区对象
-        glGenBuffers(1, &VBO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // 顶点索引缓冲区对象
-        glGenBuffers(1, &IBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), faces.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         // 法向量顶点缓冲区对象
-        glGenBuffers(1, &NBO);
         glBindBuffer(GL_ARRAY_BUFFER, NBO);
         glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat), normals.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -337,6 +340,9 @@ private:
         ImGui_ImplOpenGL2_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
+
+        const GLuint buffers[] = {VBO, IBO, NBO};
+        glDeleteBuffers(std::end(buffers) - std::begin(buffers), buffers);
 
         glfwDestroyWindow(window);
         glfwTerminate();

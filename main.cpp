@@ -186,6 +186,7 @@ private:
     bool select_dispaly = false;   // 强调显示被选取的对象
     GLint selected_id;             // 被选择的对象在数组中开始位置
     GLdouble select_radius = 1.0f; // 选择视口的半径
+    GLint hits = 0;                // 拾取模式选中数
 
     // 视口参数
     struct {
@@ -523,37 +524,14 @@ private:
         glDisableVertexAttribArray(0);
     }
 
-    // clang-format off
-// Main code
-void mainLoop() {
-    ImGuiIO &io = ImGui::GetIO();
-    while (!glfwWindowShouldClose(window)) {
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your
-        // inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those
-        // two flags.
-        glfwPollEvents();
-
-        // ImGUI preparation for the frame
-        ImGui_ImplOpenGL2_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-
+    // 更新状态
+    void update_status() {
+        ImGuiIO &io = ImGui::GetIO();
         // 更新视口参数
         viewport.w = std::min({(GLint)io.DisplaySize.x, (GLint)io.DisplaySize.y, (GLint)800});
         viewport.h = viewport.w;
         viewport.x = io.DisplaySize.x - viewport.w;
         viewport.y = (io.DisplaySize.y - viewport.h) / 2;
-        // 在 rentia 这样的屏幕上上需要如此适配缩放
-        {
-            float x = viewport.x * io.DisplayFramebufferScale.x;
-            float y = viewport.y * io.DisplayFramebufferScale.y;
-            float w = viewport.w * io.DisplayFramebufferScale.x;
-            float h = viewport.h * io.DisplayFramebufferScale.y;
-            glViewport(x, y, w, h);
-        }
         // 更新姿态
         lb_clicked = false;
 
@@ -594,218 +572,255 @@ void mainLoop() {
             // 滚轮
             view_distance -= io.MouseWheel * 0.5f;
         }
+    }
+
+    // 执行选取
+    // TODO: 使用软件实现
+    void do_select() {
+        ImGuiIO &io = ImGui::GetIO();
+        glUseProgram(0);
+        glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
+        glRenderMode(GL_SELECT);
+
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+
+        glm::mat4 proj = glm::pickMatrix(glm::vec2(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y),
+                                         glm::vec2(select_radius * 2, select_radius * 2),
+                                         glm::vec4(viewport.x, viewport.y, viewport.w, viewport.h));
+        proj *= glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 20.0f);
+        glLoadMatrixf(glm::value_ptr(proj));
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        set_lookat();
+
+        // 绘制模型
+        switch (select_mode) {
+        case SELECT_VERTEX:
+            draw_model_select_vertex();
+            break;
+        case SELECT_FACE:
+            draw_model_select_face();
+            break;
+        }
+
+        // 恢复先前矩阵
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+
+        // 回到渲染模式并得到选中物体的数目
+        hits = glRenderMode(GL_RENDER);
+        printf("hits: %d\n", hits);
+        if (hits >= 1) {
+            GLuint minz = select_buffer[1];
+            selected_id = select_buffer[3];
+            size_t i = 0;
+            for (GLint n = 0; n < hits; ++n) {
+                if (select_buffer[i] == 0) {
+                    printf("name: <None>\n");
+                    printf("min z: %u\n", select_buffer[i + 1]);
+                    printf("max z: %u\n", select_buffer[i + 2]);
+                    i += 3;
+                } else {
+                    printf("name: ");
+                    for (GLuint m = i + 3; m < i + 3 + select_buffer[i]; ++m) {
+                        printf("%u ", select_buffer[m]);
+                    }
+                    printf("\n");
+                    printf("min z: %u\n", select_buffer[i + 1]);
+                    printf("max z: %u\n", select_buffer[i + 2]);
+                    if (select_buffer[i + 1] < minz) {
+                        minz = select_buffer[i + 1];
+                        selected_id = select_buffer[i + 3];
+                    }
+                    i += 3 + select_buffer[i];
+                }
+            }
+            printf("selected id: %d\n", selected_id);
+        }
+    }
+
+    // UI 设计代码
+    void design_gui() {
+        ImGuiIO &io = ImGui::GetIO();
+        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Control");
+
+        if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabItem("Global")) {
+                ImGui::ColorEdit3("clear color", clear_color);
+                ImGui::ColorEdit3("global ambient", global_ambient);
+                ImGui::SliderFloat("fovy", &fovy, 0.1f, 90.0f);
+                ImGui::Checkbox("draw coordinate", &draw_coord);
+                ImGui::Checkbox("draw lights", &draw_lights);
+                ImGui::Checkbox("wire view", &enable_wire_view);
+                if (enable_wire_view) {
+                    ImGui::TreePush();
+                    ImGui::Checkbox("show back wire", &show_back_wire);
+                    ImGui::ColorEdit3("wire color", wire_color);
+                    ImGui::TreePop();
+                }
+                ImGui::Separator();
+                ImGui::Text("Select Mode");
+                ImGui::RadioButton("None", &select_mode, SELECT_NONE);
+                ImGui::SameLine();
+                ImGui::RadioButton("Vertex", &select_mode, SELECT_VERTEX);
+                ImGui::SameLine();
+                ImGui::RadioButton("Face", &select_mode, SELECT_FACE);
+                {
+                    char current_radius[32];
+                    static int radius_i = select_radius * 2;
+                    sprintf(current_radius, "%.1lf", select_radius);
+                    ImGui::SliderInt("Select Radius", &radius_i, 1, 20, current_radius);
+                    select_radius = (GLdouble)radius_i / 2;
+                }
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Material")) {
+                ImGui::ColorEdit4("ambient", material.ambient);
+                ImGui::ColorEdit4("diffuse", material.diffuse);
+                ImGui::ColorEdit4("specular", material.specular);
+                ImGui::SliderFloat("shininess", &material.shininess, 0, 128);
+                ImGui::Separator();
+                ImGui::Text("built-in materials");
+                // Manually wrapping
+                ImGuiStyle &style = ImGui::GetStyle();
+                constexpr size_t material_count = sizeof(materials) / sizeof(Material);
+                static std::vector<float> button_widths(material_count);
+                float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+                for (size_t i = 0; i < material_count; ++i) {
+                    const auto &m = materials[i];
+                    if (ImGui::Button(m.name)) {
+                        material = m;
+                    }
+                    button_widths[i] = ImGui::GetItemRectSize().x;
+                    float last_button_x2 = ImGui::GetItemRectMax().x;
+                    // Expected position if next button was on same line
+                    if (i + 1 < material_count) {
+                        float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_widths[i + 1];
+                        if (next_button_x2 < window_visible_x2)
+                            ImGui::SameLine();
+                    }
+                }
+                ImGui::EndTabItem();
+            }
+            for (int i = 0; i < LIGHTS; ++i) {
+                char light_tabname[10];
+                sprintf(light_tabname, "Light%d", i);
+                if (ImGui::BeginTabItem(light_tabname)) {
+                    ImGui::ColorEdit4("ambient", lights[i].ambient);
+                    ImGui::ColorEdit4("diffuse", lights[i].diffuse);
+                    ImGui::ColorEdit4("specular", lights[i].specular);
+                    ImGui::Text("position:");
+                    ImGui::SliderFloat("x", &lights[i].position[0], -5.0f, 5.0f);
+                    ImGui::SliderFloat("y", &lights[i].position[1], -5.0f, 5.0f);
+                    ImGui::SliderFloat("z", &lights[i].position[2], -5.0f, 5.0f);
+                    ImGui::EndTabItem();
+                }
+            }
+            ImGui::EndTabBar();
+        }
+        ImGui::End();
+
+        ImGui::SetNextWindowPos(ImVec2(10, io.DisplaySize.y - 10), ImGuiCond_Always, ImVec2(0.0, 1.0));
+        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+        ImGui::Begin("overlay", nullptr,
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+                         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
+                         ImGuiWindowFlags_NoNav);
+        {
+            if (ImGui::IsMousePosValid())
+                ImGui::Text("Mouse Position: (%6.1f,%6.1f)", io.MousePos.x, io.MousePos.y);
+            else
+                ImGui::Text("Mouse Position: %-13s", "<invalid>");
+            ImGui::Text("mouse left button dragging: %d", ImGui::IsMouseDragging(ImGuiMouseButton_Left));
+            ImGui::Text("display size: %6.1f %6.1f, scale: %.1f %.1f", io.DisplaySize.x, io.DisplaySize.y,
+                        io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+            ImGui::Text("viewport: %d %d %d %d", viewport.x, viewport.y, viewport.w, viewport.h);
+            ImGui::Separator();
+            ImGui::Text("view distance: %.2f", view_distance);
+            ImGui::Text("horizonal angle:%.1f", horizonal_angle);
+            ImGui::Text("pitch angle:%.1f", pitch_angle);
+            ImGui::Separator();
+            ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
+        }
+        ImGui::End();
+
+        // 显示拾取结果数据的弹窗
+        if (select_mode != SELECT_NONE && lb_clicked && hits >= 1) {
+            ImGui::OpenPopup("#select popup");
+        }
+        ImVec2 popup_pos(lb_press_pos.x + 10, lb_press_pos.y - 10);
+        ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always, ImVec2(0.0, 1.0));
+        select_dispaly = ImGui::BeginPopup("#select popup");
+        if (select_dispaly) {
+            if (select_mode == SELECT_VERTEX) {
+                ImGui::Text("vertex %d", selected_id / 3);
+                ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1],
+                            vertices[selected_id + 2]);
+                ImGui::EndPopup();
+            }
+            if (select_mode == SELECT_FACE) {
+                auto v1 = faces[selected_id];
+                auto v2 = faces[selected_id + 1];
+                auto v3 = faces[selected_id + 2];
+                ImGui::Text("triangle %d", selected_id / 3);
+                ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
+                ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
+                ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
+                ImGui::EndPopup();
+            }
+        }
+    }
+
+    // clang-format off
+// Main code
+void mainLoop() {
+    ImGuiIO &io = ImGui::GetIO();
+    while (!glfwWindowShouldClose(window)) {
+        // Poll and handle events (inputs, window resize, etc.)
+        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your
+        // inputs.
+        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
+        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
+        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those
+        // two flags.
+        glfwPollEvents();
+
+        // ImGUI preparation for the frame
+        ImGui_ImplOpenGL2_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+
+        // 更新状态
+        update_status();
+
+        // 设置视口
+        // 在 rentia 这样的屏幕上需要如此适配，从逻辑像素得到实际像素
+        {
+            float x = viewport.x * io.DisplayFramebufferScale.x;
+            float y = viewport.y * io.DisplayFramebufferScale.y;
+            float w = viewport.w * io.DisplayFramebufferScale.x;
+            float h = viewport.h * io.DisplayFramebufferScale.y;
+            glViewport(x, y, w, h);
+        }
 
         // 设置模型姿态
         set_model_transform();
 
         // 拾取模式
-        // TODO: 使用软件实现
-        GLint hits = 0;
         if (lb_clicked && select_mode != SELECT_NONE) {
-            glUseProgram(0);
-            glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
-            glRenderMode(GL_SELECT);
-
-            glMatrixMode(GL_PROJECTION);
-            glPushMatrix();
-            // glLoadIdentity();
-            // gluPickMatrix(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y, select_radius * 2, select_radius * 2,
-            //               (GLint *)&viewport);
-            // gluPerspective(fovy, 1, 0.1, 20);
-
-            glm::mat4 proj = glm::pickMatrix(glm::vec2(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y),
-                                             glm::vec2(select_radius * 2, select_radius * 2),
-                                             glm::vec4(viewport.x, viewport.y, viewport.w, viewport.h));
-            proj *= glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 20.0f);
-            glLoadMatrixf(glm::value_ptr(proj));
-
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
-            glLoadIdentity();
-            set_lookat();
-
-            // 绘制模型
-            switch (select_mode) {
-            case SELECT_VERTEX:
-                draw_model_select_vertex();
-                break;
-            case SELECT_FACE:
-                draw_model_select_face();
-                break;
-            }
-
-            // 恢复先前矩阵
-            glMatrixMode(GL_MODELVIEW);
-            glPopMatrix();
-            glMatrixMode(GL_PROJECTION);
-            glPopMatrix();
-
-            // 回到渲染模式并得到选中物体的数目
-            hits = glRenderMode(GL_RENDER);
-            printf("hits: %d\n", hits);
-            if (hits >= 1) {
-                GLuint minz = select_buffer[1];
-                selected_id = select_buffer[3];
-                size_t i = 0;
-                for (GLint n = 0; n < hits; ++n) {
-                    if (select_buffer[i] == 0) {
-                        printf("name: <None>\n");
-                        printf("min z: %u\n", select_buffer[i + 1]);
-                        printf("max z: %u\n", select_buffer[i + 2]);
-                        i += 3;
-                    } else {
-                        printf("name: ");
-                        for (GLuint m = i + 3; m < i + 3 + select_buffer[i]; ++m) {
-                            printf("%u ", select_buffer[m]);
-                        }
-                        printf("\n");
-                        printf("min z: %u\n", select_buffer[i + 1]);
-                        printf("max z: %u\n", select_buffer[i + 2]);
-                        if (select_buffer[i + 1] < minz) {
-                            minz = select_buffer[i + 1];
-                            selected_id = select_buffer[i + 3];
-                        }
-                        i += 3 + select_buffer[i];
-                    }
-                }
-                printf("selected id: %d\n", selected_id);
-            }
+            do_select();
         }
 
         // Start the Dear ImGui frame
         ImGui::NewFrame();
 
-        // UI 设计代码
-        {
-            ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(400, 400), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Control");
-
-            if (ImGui::BeginTabBar("##tabs", ImGuiTabBarFlags_None)) {
-                if (ImGui::BeginTabItem("Global")) {
-                    ImGui::ColorEdit3("clear color", clear_color);
-                    ImGui::ColorEdit3("global ambient", global_ambient);
-                    ImGui::SliderFloat("fovy", &fovy, 0.1f, 90.0f);
-                    ImGui::Checkbox("draw coordinate", &draw_coord);
-                    ImGui::Checkbox("draw lights", &draw_lights);
-                    ImGui::Checkbox("wire view", &enable_wire_view);
-                    if (enable_wire_view) {
-                        ImGui::TreePush();
-                        ImGui::Checkbox("show back wire", &show_back_wire);
-                        ImGui::ColorEdit3("wire color", wire_color);
-                        ImGui::TreePop();
-                    }
-                    ImGui::Separator();
-                    ImGui::Text("Select Mode");
-                    ImGui::RadioButton("None", &select_mode, SELECT_NONE);
-                    ImGui::SameLine();
-                    ImGui::RadioButton("Vertex", &select_mode, SELECT_VERTEX);
-                    ImGui::SameLine();
-                    ImGui::RadioButton("Face", &select_mode, SELECT_FACE);
-                    {
-                        char current_radius[32];
-                        static int radius_i = select_radius * 2;
-                        sprintf(current_radius, "%.1lf", select_radius);
-                        ImGui::SliderInt("Select Radius", &radius_i, 1, 20, current_radius);
-                        select_radius = (GLdouble)radius_i / 2;
-                    }
-                    ImGui::EndTabItem();
-                }
-                if (ImGui::BeginTabItem("Material")) {
-                    ImGui::ColorEdit4("ambient", material.ambient);
-                    ImGui::ColorEdit4("diffuse", material.diffuse);
-                    ImGui::ColorEdit4("specular", material.specular);
-                    ImGui::SliderFloat("shininess", &material.shininess, 0, 128);
-                    ImGui::Separator();
-                    ImGui::Text("built-in materials");
-                    // Manually wrapping
-                    ImGuiStyle& style = ImGui::GetStyle();
-                    constexpr size_t material_count = sizeof(materials) / sizeof(Material);
-                    static std::vector<float> button_widths(material_count);
-                    float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-                    for (size_t i = 0; i < material_count; ++i) {
-                        const auto& m = materials[i]; 
-                        if (ImGui::Button(m.name)) {
-                            material = m;
-                        }
-                        button_widths[i] = ImGui::GetItemRectSize().x;
-                        float last_button_x2 = ImGui::GetItemRectMax().x;
-                        // Expected position if next button was on same line
-                        if (i + 1 < material_count) {
-                            float next_button_x2 = last_button_x2 + style.ItemSpacing.x + button_widths[i + 1];
-                            if (next_button_x2 < window_visible_x2)
-                                ImGui::SameLine();
-                        }
-                    }
-                    ImGui::EndTabItem();
-                }
-                for (int i = 0; i < LIGHTS; ++i) {
-                    char light_tabname[10];
-                    sprintf(light_tabname, "Light%d", i);
-                    if (ImGui::BeginTabItem(light_tabname)) {
-                        ImGui::ColorEdit4("ambient", lights[i].ambient);
-                        ImGui::ColorEdit4("diffuse", lights[i].diffuse);
-                        ImGui::ColorEdit4("specular", lights[i].specular);
-                        ImGui::Text("position:");
-                        ImGui::SliderFloat("x", &lights[i].position[0], -5.0f, 5.0f);
-                        ImGui::SliderFloat("y", &lights[i].position[1], -5.0f, 5.0f);
-                        ImGui::SliderFloat("z", &lights[i].position[2], -5.0f, 5.0f);
-                        ImGui::EndTabItem();
-                    }
-                }
-                ImGui::EndTabBar();
-            }
-            ImGui::End();
-
-            ImGui::SetNextWindowPos(ImVec2(10, io.DisplaySize.y - 10), ImGuiCond_Always, ImVec2(0.0, 1.0));
-            ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
-            ImGui::Begin("overlay", nullptr,
-                         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
-                             ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
-                             ImGuiWindowFlags_NoNav);
-            {
-                if (ImGui::IsMousePosValid())
-                    ImGui::Text("Mouse Position: (%6.1f,%6.1f)", io.MousePos.x, io.MousePos.y);
-                else
-                    ImGui::Text("Mouse Position: %-13s", "<invalid>");
-                ImGui::Text("mouse left button dragging: %d", ImGui::IsMouseDragging(ImGuiMouseButton_Left));
-                ImGui::Text("display size: %6.1f %6.1f, scale: %.1f %.1f", io.DisplaySize.x, io.DisplaySize.y,
-                            io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-                ImGui::Text("viewport: %d %d %d %d", viewport.x, viewport.y, viewport.w, viewport.h);
-                ImGui::Separator();
-                ImGui::Text("view distance: %.2f", view_distance);
-                ImGui::Text("horizonal angle:%.1f", horizonal_angle);
-                ImGui::Text("pitch angle:%.1f", pitch_angle);
-                ImGui::Separator();
-                ImGui::Text("FPS: %.2f", ImGui::GetIO().Framerate);
-            }
-            ImGui::End();
-
-            if (select_mode != SELECT_NONE && lb_clicked && hits >= 1) {
-                ImGui::OpenPopup("#select popup");
-            }
-            ImVec2 popup_pos(lb_press_pos.x + 10, lb_press_pos.y - 10);
-            ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always, ImVec2(0.0, 1.0));
-            select_dispaly = ImGui::BeginPopup("#select popup");
-            if (select_dispaly) {
-                if (select_mode == SELECT_VERTEX) {
-                    ImGui::Text("vertex %d", selected_id / 3);
-                    ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1],
-                                vertices[selected_id + 2]);
-                    ImGui::EndPopup();
-                }
-                if (select_mode == SELECT_FACE) {
-                    auto v1 = faces[selected_id];
-                    auto v2 = faces[selected_id + 1];
-                    auto v3 = faces[selected_id + 2];
-                    ImGui::Text("triangle %d", selected_id / 3);
-                    ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
-                    ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
-                    ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
-                    ImGui::EndPopup();
-                }
-            }
-        }
+        design_gui();
 
         // Rendering
         ImGui::Render();

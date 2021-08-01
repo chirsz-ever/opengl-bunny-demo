@@ -186,7 +186,7 @@ private:
     bool select_dispaly = false;   // 强调显示被选取的对象
     GLint selected_id;             // 被选择的对象在数组中开始位置
     GLdouble select_radius = 1.0f; // 选择视口的半径
-    GLint hits = 0;                // 拾取模式选中数
+    bool pick_sucess = false;      // 在本帧中进行拾取且成功
 
     // 视口参数
     struct {
@@ -619,7 +619,7 @@ private:
         glPopMatrix();
 
         // 回到渲染模式并得到选中物体的数目
-        hits = glRenderMode(GL_RENDER);
+        GLint hits = glRenderMode(GL_RENDER);
         printf("hits: %d\n", hits);
         if (hits >= 1) {
             GLuint minz = select_buffer[1];
@@ -646,6 +646,7 @@ private:
                     i += 3 + select_buffer[i];
                 }
             }
+            pick_sucess = true;
             printf("selected id: %d\n", selected_id);
         }
     }
@@ -758,18 +759,20 @@ private:
         ImGui::End();
 
         // 显示拾取结果数据的弹窗
-        if (select_mode != SELECT_NONE && lb_clicked && hits >= 1) {
+        // popup 窗口触发后状态由 IMGUI 自动管理
+        // 所以只需要触发一次
+        if (pick_sucess) {
             ImGui::OpenPopup("#select popup");
         }
         ImVec2 popup_pos(lb_press_pos.x + 10, lb_press_pos.y - 10);
         ImGui::SetNextWindowPos(popup_pos, ImGuiCond_Always, ImVec2(0.0, 1.0));
+        // select_dispaly 与 popup 窗口状态保持一致
         select_dispaly = ImGui::BeginPopup("#select popup");
         if (select_dispaly) {
             if (select_mode == SELECT_VERTEX) {
                 ImGui::Text("vertex %d", selected_id / 3);
                 ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1],
                             vertices[selected_id + 2]);
-                ImGui::EndPopup();
             }
             if (select_mode == SELECT_FACE) {
                 auto v1 = faces[selected_id];
@@ -779,8 +782,8 @@ private:
                 ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
                 ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
                 ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
-                ImGui::EndPopup();
             }
+            ImGui::EndPopup();
         }
     }
 
@@ -819,6 +822,7 @@ void mainLoop() {
         set_model_transform();
 
         // 拾取模式
+        pick_sucess = false;
         if (lb_clicked && select_mode != SELECT_NONE) {
             do_select();
         }

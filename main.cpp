@@ -47,11 +47,6 @@ static void print_glew_version() {
 // Degree to Radian
 inline float D2R(float degree) { return glm::radians(degree); }
 
-inline void glLoadTopMatrix() {
-    glPopMatrix();
-    glPushMatrix();
-}
-
 struct LightSource {
     GLfloat ambient[4];  // 环境光
     GLfloat diffuse[4];  // 漫反射
@@ -85,9 +80,7 @@ private:
     GLFWwindow *window = nullptr;
 
     // 模型数据
-    std::vector<GLfloat> vertices;
-    std::vector<GLuint> faces;
-    std::vector<GLfloat> normals;
+    Mesh<> model;
 
     // 缓冲区
     GLuint VBO, IBO, NBO;
@@ -258,17 +251,18 @@ private:
 
         // 顶点缓冲区对象
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, model.vertices.size() * sizeof(GLfloat), model.vertices.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         // 顶点索引缓冲区对象
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), faces.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, model.indices.size() * sizeof(GLuint), model.indices.data(),
+                     GL_STATIC_DRAW);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         // 法向量顶点缓冲区对象
         glBindBuffer(GL_ARRAY_BUFFER, NBO);
-        glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat), normals.data(), GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, model.normals.size() * sizeof(GLfloat), model.normals.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
@@ -307,10 +301,10 @@ private:
         if (argc >= 2) {
             filename = argv[1];
         }
-        load_bunny_data(filename, vertices, faces, normals);
+        model = load_bunny_data(filename);
 
-        printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, (unsigned long)vertices.size() / 3,
-               (unsigned long)faces.size() / 3, (unsigned long)normals.size() / 3);
+        printf("%s loaded, vertices:%lu, faces:%lu, normals:%lu\n", filename, (unsigned long)model.vertices.size() / 3,
+               (unsigned long)model.indices.size() / 3, (unsigned long)model.normals.size() / 3);
     }
 
     // 设置模型姿态
@@ -398,7 +392,7 @@ private:
         // 顶点索引
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-        glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, model.indices.size(), GL_UNSIGNED_INT, nullptr);
 
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
@@ -454,7 +448,7 @@ private:
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
-        glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, model.indices.size(), GL_UNSIGNED_INT, nullptr);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -469,43 +463,47 @@ private:
     // 在光源位置绘制小球
     // TODO: 绘制光球效果
     void draw_light_balls() {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        glEnableClientState(GL_INDEX_ARRAY);
-        glUseProgram(0);
+        glEnableVertexAttribArray(0);
+        glDisableVertexAttribArray(2);
+        glUseProgram(program_simple);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BARRIER_BIT_EXT, 0);
 
-        glLoadTopMatrix();
-        glTranslatef(lights[0].position[0], lights[0].position[1], lights[0].position[2]);
-        glColor3fv(lights[0].diffuse);
-        drawSolidSphere(0.05, 16, 16);
+        glm::mat4 m = glm::translate(glm::identity<glm::mat4>(), glm::make_vec3(lights[0].position));
+        glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
+        glVertexAttrib4fv(2, lights[0].diffuse);
+        auto mesh = genSolidSphere(0.05, 16, 16);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, mesh.vertices.data());
+        glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
 
-        glLoadTopMatrix();
-        glTranslatef(lights[1].position[0], lights[1].position[1], lights[1].position[2]);
-        glColor3fv(lights[1].diffuse);
-        drawSolidSphere(0.05, 16, 16);
+        m = glm::translate(glm::identity<glm::mat4>(), glm::make_vec3(lights[1].position));
+        glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
+        glVertexAttrib4fv(2, lights[0].diffuse);
+        mesh = genSolidSphere(0.05, 16, 16);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, mesh.vertices.data());
+        glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
 
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
+        glDisableVertexAttribArray(0);
     }
 
     // 强调被选中的顶点
     // TODO: 在 shader 中使用 gl_PointSize 和 gl_PointCoord 绘制圆点
     void draw_selected_vertex() {
-        glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_INDEX_ARRAY);
-        glUseProgram(0);
-        glDisable(GL_LIGHTING);
-        glPolygonMode(GL_FRONT, GL_FILL);
-        glColor3i(0, 0, 0);
+        glEnableVertexAttribArray(0);
+        glDisableVertexAttribArray(2);
+        glUseProgram(program_simple);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BARRIER_BIT_EXT, 0);
+        glVertexAttrib3f(2, 0.0, 0.0, 0.0);
 
-        glLoadTopMatrix();
-        model_transform();
-        glTranslatef(vertices[selected_id], vertices[selected_id + 1], vertices[selected_id + 2]);
-        drawSolidSphere(0.01, 10, 10);
+        auto mesh = genSolidSphere(0.01, 10, 10);
 
-        glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_INDEX_ARRAY);
+        glm::mat4 m = glm::translate(mat_model, glm::make_vec3(model.vertices.data() + selected_id));
+        glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, mesh.vertices.data());
+        glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
+
+        glDisableVertexAttribArray(0);
     }
 
     // 绘制被点选的面片
@@ -771,17 +769,17 @@ private:
         if (select_dispaly) {
             if (select_mode == SELECT_VERTEX) {
                 ImGui::Text("vertex %d", selected_id / 3);
-                ImGui::Text("(%f, %f, %f)", vertices[selected_id], vertices[selected_id + 1],
-                            vertices[selected_id + 2]);
+                ImGui::Text("(%f, %f, %f)", model.vertices[selected_id], model.vertices[selected_id + 1],
+                            model.vertices[selected_id + 2]);
             }
             if (select_mode == SELECT_FACE) {
-                auto v1 = faces[selected_id];
-                auto v2 = faces[selected_id + 1];
-                auto v3 = faces[selected_id + 2];
+                auto v1 = model.indices[selected_id];
+                auto v2 = model.indices[selected_id + 1];
+                auto v3 = model.indices[selected_id + 2];
                 ImGui::Text("triangle %d", selected_id / 3);
-                ImGui::Text("v1: (%f, %f, %f)", vertices[v1], vertices[v1 + 1], vertices[v1 + 2]);
-                ImGui::Text("v2: (%f, %f, %f)", vertices[v2], vertices[v2 + 1], vertices[v2 + 2]);
-                ImGui::Text("v3: (%f, %f, %f)", vertices[v3], vertices[v3 + 1], vertices[v3 + 2]);
+                ImGui::Text("v1: (%f, %f, %f)", model.vertices[v1], model.vertices[v1 + 1], model.vertices[v1 + 2]);
+                ImGui::Text("v2: (%f, %f, %f)", model.vertices[v2], model.vertices[v2 + 1], model.vertices[v2 + 2]);
+                ImGui::Text("v3: (%f, %f, %f)", model.vertices[v3], model.vertices[v3 + 1], model.vertices[v3 + 2]);
             }
             ImGui::EndPopup();
         }
@@ -929,7 +927,7 @@ void set_lookat() {
 
     mat_view = glm::lookAt(glm::vec3(cop_x, cop_y, cop_z),
                        glm::vec3(0.0f, 0.0f, 0.0f),
-                       glm::vec3(up[0], up[1], up[2]));
+                       glm::make_vec3(up));
     glMultMatrixf(glm::value_ptr(mat_view));
 }
 
@@ -938,8 +936,8 @@ void draw_model_select_vertex() {
 
     glInitNames();
     glPushName(-1);
-    auto vd = vertices.data();
-    for (size_t v = 0; v < vertices.size(); v += 3) {
+    auto vd = model.vertices.data();
+    for (size_t v = 0; v < model.vertices.size(); v += 3) {
         glLoadName(v);
         glBegin(GL_POINTS);
         glVertex3fv(vd + v);
@@ -952,9 +950,9 @@ void draw_model_select_face() {
 
     glInitNames();
     glPushName(-1);
-    auto vd = vertices.data();
-    auto fd = faces.data();
-    for (size_t f = 0; f < faces.size(); f += 3) {
+    auto vd = model.vertices.data();
+    auto fd = model.indices.data();
+    for (size_t f = 0; f < model.indices.size(); f += 3) {
         glLoadName(f);
         glBegin(GL_TRIANGLES);
         glVertex3fv(vd + fd[f] * 3);

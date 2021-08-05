@@ -17,7 +17,7 @@ IMGUI_OBJS = $(patsubst %.cpp,imgui/%.o,$(IMGUI_SOURCES))
 UNAME_S := $(shell uname -s)
 
 CXXFLAGS = -Iimgui
-CXXFLAGS += -Wall -Wformat -std=c++11
+CXXFLAGS += -Wall -Wformat -std=c++17
 
 ifeq ($(DEBUG), 1)
 	CXXFLAGS += -g

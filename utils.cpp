@@ -3,6 +3,7 @@
 #include "utils.h"
 
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -10,16 +11,22 @@
 
 using namespace std;
 
+namespace glss {
+
 static void eatline(std::istream &input) { input.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); }
 
-void load_bunny_data(const char file[], std::vector<GLfloat> &vertices, std::vector<GLuint> &faces,
-                     std::vector<GLfloat> &normals) {
+Mesh<> load_bunny_data(std::string_view obj_filename) {
     ifstream fin;
-    fin.open(file);
+    fin.open(filesystem::path(obj_filename));
     if (!fin.is_open()) {
-        printf("Open `%s` failed\n", file);
+        cerr << "Open `" << obj_filename << "` failed" << endl;
         exit(1);
     }
+
+    Mesh<> mesh;
+    auto &vertices = mesh.vertices;
+    auto &faces = mesh.indices;
+    auto &normals = mesh.normals;
 
     // 开始读取文件
     string token;
@@ -60,19 +67,21 @@ void load_bunny_data(const char file[], std::vector<GLfloat> &vertices, std::vec
             eatline(fin);
         }
     }
+
+    return mesh;
 }
 
-template <typename T> static void push3(std::vector<T> &vertices, T x, T y, T z) {
+template <typename T, typename A> static void push3(std::vector<T, A> &vertices, T x, T y, T z) {
     vertices.push_back(x);
     vertices.push_back(y);
     vertices.push_back(z);
 }
 
-void drawSolidSphere(const GLfloat radius, const GLint slices, const GLint stacks) {
+Mesh<> genSolidSphere(GLfloat radius, GLint slices, GLint stacks) {
     GLfloat step_la = M_PI / stacks;
     GLfloat step_lo = 2.0f * M_PI / slices;
 
-    std::vector<GLfloat> vertices, normals;
+    std::pmr::vector<GLfloat> vertices, normals;
     vertices.reserve(slices * (stacks - 1) * 3 + 6);
     normals.reserve(slices * (stacks - 1) * 3 + 6);
 
@@ -97,7 +106,7 @@ void drawSolidSphere(const GLfloat radius, const GLint slices, const GLint stack
     push3(vertices, 0.0f, 0.0f, -radius);
     push3(normals, 0.0f, 0.0f, -1.0f);
 
-    std::vector<GLuint> indices;
+    std::pmr::vector<GLuint> indices;
     indices.reserve(slices * stacks * 3);
 
     for (int i = 0; i < stacks - 2; ++i) {
@@ -139,15 +148,12 @@ void drawSolidSphere(const GLfloat radius, const GLint slices, const GLint stack
     }
     push3<GLuint>(indices, vsouth, slices * (stacks - 2), slices * (stacks - 1) - 1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glVertexPointer(3, GL_FLOAT, 0, vertices.data());
-    glNormalPointer(GL_FLOAT, 0, normals.data());
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, indices.data());
+    return {vertices, indices, normals};
 }
 
-static GLuint load_shader(const char shader_file[], GLenum shader_type) {
-    ifstream fin(shader_file);
+static GLuint load_shader(std::string_view shader_file, GLenum shader_type) {
+    ifstream fin;
+    fin.open(std::filesystem::path(shader_file));
     GLint file_len;
     GLchar *source;
 
@@ -178,7 +184,7 @@ static GLuint load_shader(const char shader_file[], GLenum shader_type) {
     return shader;
 }
 
-GLuint load_program(const char vertex_shader_file[], const char fragment_shader_file[]) {
+GLuint load_program(std::string_view vertex_shader_file, std::string_view fragment_shader_file) {
     GLuint vertex_shader = load_shader(vertex_shader_file, GL_VERTEX_SHADER);
     GLuint fragment_shader = load_shader(fragment_shader_file, GL_FRAGMENT_SHADER);
 
@@ -204,3 +210,5 @@ GLuint load_program(const char vertex_shader_file[], const char fragment_shader_
 
     return program;
 }
+
+}; // namespace glss

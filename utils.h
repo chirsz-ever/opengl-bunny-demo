@@ -10,7 +10,8 @@
 
 inline namespace glss {
 
-template <typename coord = float, typename index = std::uint32_t> struct Mesh {
+template <typename coord = float, typename index = std::uint32_t>
+struct Mesh {
     std::pmr::vector<coord> vertices;
     std::pmr::vector<index> indices;
     std::pmr::vector<coord> normals;

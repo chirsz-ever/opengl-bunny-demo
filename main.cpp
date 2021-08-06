@@ -27,7 +27,9 @@ static void glfw_error_callback(int error, const char *description) {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-static void print_opengl_info() { printf("OpenGL version: %s\n", glGetString(GL_VERSION)); }
+static void print_opengl_info() {
+    printf("OpenGL version: %s\n", glGetString(GL_VERSION));
+}
 
 static void print_glfw_version() {
     int major, minor, rev;
@@ -45,7 +47,9 @@ static void print_glew_version() {
 }
 
 // Degree to Radian
-inline float D2R(float degree) { return glm::radians(degree); }
+inline float D2R(float degree) {
+    return glm::radians(degree);
+}
 
 struct LightSource {
     GLfloat ambient[4];  // 环境光
@@ -96,8 +100,8 @@ private:
     glm::mat4 mat_proj;
 
     // Our state
-    GLfloat clear_color[4] = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
-    GLfloat global_ambient[4] = {0.1, 0.1, 0.1, 0.0};      // 全局环境光
+    GLfloat clear_color[4]    = {0.34f, 0.82f, 0.82f, 1.00f}; // 清屏颜色
+    GLfloat global_ambient[4] = {0.1, 0.1, 0.1, 0.0};         // 全局环境光
 
     // 材质参数
     Material material = materials[0];
@@ -145,41 +149,41 @@ private:
         } phong;
     } uniform_locations;
 
-#define GET_UNIFORM_LOCATION(p, u) uniform_locations.p.u = glGetUniformLocation(program_##p, #u)
-#define SET_UNIFORM_N(p, n, u) glUniform##n##fv(uniform_locations.p.u, 1, u)
-#define SET_UNIFORM_1(p, u) glUniform1f(uniform_locations.p.u, u)
-#define SET_UNIFORM_MAT_N(p, n, u) glUniformMatrix##n##fv(uniform_locations.p.u, 1, GL_FALSE, glm::value_ptr(mat_##u))
-
-#define GET_PHONG_UNIFORM_LOCATION(u) GET_UNIFORM_LOCATION(phong, u)
+#define GET_UNIFORM_LOCATION(p, u)     uniform_locations.p.u = glGetUniformLocation(program_##p, #u)
+#define SET_UNIFORM_N(p, n, u)         glUniform##n##fv(uniform_locations.p.u, 1, u)
+#define SET_UNIFORM_1(p, u)            glUniform1f(uniform_locations.p.u, u)
+#define SET_UNIFORM_MAT_N(p, n, u)     glUniformMatrix##n##fv(uniform_locations.p.u, 1, GL_FALSE, glm::value_ptr(mat_##u))
+//
+#define GET_PHONG_UNIFORM_LOCATION(u)  GET_UNIFORM_LOCATION(phong, u)
 #define GET_SIMPLE_UNIFORM_LOCATION(u) GET_UNIFORM_LOCATION(simple, u)
-
-#define SET_PHONG_UNIFORM4(u) SET_UNIFORM_N(phong, 4, u)
-#define SET_PHONG_UNIFORM1(u) SET_UNIFORM_1(phong, u)
-#define SET_PHONG_UNIFORM_MAT4(u) SET_UNIFORM_MAT_N(phong, 4, u)
-
-#define SET_SIMPLE_UNIFORM_MAT4(u) SET_UNIFORM_MAT_N(simple, 4, u)
+//
+#define SET_PHONG_UNIFORM4(u)          SET_UNIFORM_N(phong, 4, u)
+#define SET_PHONG_UNIFORM1(u)          SET_UNIFORM_1(phong, u)
+#define SET_PHONG_UNIFORM_MAT4(u)      SET_UNIFORM_MAT_N(phong, 4, u)
+//
+#define SET_SIMPLE_UNIFORM_MAT4(u)     SET_UNIFORM_MAT_N(simple, 4, u)
 
     // 线框颜色
     GLfloat wire_color[4] = {0.1, 0.1, 0.1, 1.0};
 
-    bool draw_coord = false;       // 绘制坐标系辅助线
-    bool draw_lights = false;      // 绘制光源位置提示球
+    bool draw_coord       = false; // 绘制坐标系辅助线
+    bool draw_lights      = false; // 绘制光源位置提示球
     bool enable_wire_view = false; // 启用线框模式绘制模型
-    bool show_back_wire = false;   // 显示模型另一侧的线框
+    bool show_back_wire   = false; // 显示模型另一侧的线框
 
     float horizonal_angle = 45.0f; // 水平转动角，单位为度
-    float pitch_angle = 60.0f;     // 俯仰角，与 y 轴正方向夹角，单位为度
-    float fovy = 30.0f;            // 观察张角
-    float view_distance = 10.0f;   // 观察距离
+    float pitch_angle     = 60.0f; // 俯仰角，与 y 轴正方向夹角，单位为度
+    float fovy            = 30.0f; // 观察张角
+    float view_distance   = 10.0f; // 观察距离
 
     enum { SELECT_NONE = 0, SELECT_VERTEX = 1, SELECT_FACE = 2 };
-    int select_mode = SELECT_NONE; // 0：不开启点选，1：选择顶点，2：选择面片
-    bool lb_clicked = false;       // 左键点击：按下，不移动，松开
-    ImVec2 lb_press_pos;           // 左键按下的位置
-    bool select_dispaly = false;   // 强调显示被选取的对象
-    GLint selected_id;             // 被选择的对象在数组中开始位置
-    GLdouble select_radius = 1.0f; // 选择视口的半径
-    bool pick_sucess = false;      // 在本帧中进行拾取且成功
+    int select_mode = SELECT_NONE;  // 0：不开启点选，1：选择顶点，2：选择面片
+    bool lb_clicked = false;        // 左键点击：按下，不移动，松开
+    ImVec2 lb_press_pos;            // 左键按下的位置
+    bool select_dispaly = false;    // 强调显示被选取的对象
+    GLint selected_id;              // 被选择的对象在数组中开始位置
+    GLdouble select_radius = 1.0f;  // 选择视口的半径
+    bool pick_sucess       = false; // 在本帧中进行拾取且成功
 
     // 视口参数
     struct {
@@ -314,7 +318,9 @@ private:
         mat_model = glm::translate(mat_model, glm::vec3{0.0f, -0.5f, 0.0f});
     }
 
-    void model_transform() { glMultMatrixf(glm::value_ptr(mat_model)); }
+    void model_transform() {
+        glMultMatrixf(glm::value_ptr(mat_model));
+    }
 
     void initImgui() {
         // Setup Dear ImGui context
@@ -532,12 +538,12 @@ private:
     void update_status() {
         ImGuiIO &io = ImGui::GetIO();
         // 更新视口参数
-        viewport.w = std::min({(GLint)io.DisplaySize.x, (GLint)io.DisplaySize.y, (GLint)800});
-        viewport.h = viewport.w;
-        viewport.x = io.DisplaySize.x - viewport.w;
-        viewport.y = (io.DisplaySize.y - viewport.h) / 2;
+        viewport.w  = std::min({(GLint)io.DisplaySize.x, (GLint)io.DisplaySize.y, (GLint)800});
+        viewport.h  = viewport.w;
+        viewport.x  = io.DisplaySize.x - viewport.w;
+        viewport.y  = (io.DisplaySize.y - viewport.h) / 2;
         // 更新姿态
-        lb_clicked = false;
+        lb_clicked  = false;
 
         const auto mouse_pos = ImGui::GetMousePos();
         if (inViewPort(mouse_pos)) {
@@ -622,7 +628,7 @@ private:
         if (hits >= 1) {
             GLuint minz = select_buffer[1];
             selected_id = select_buffer[3];
-            size_t i = 0;
+            size_t i    = 0;
             for (GLint n = 0; n < hits; ++n) {
                 if (select_buffer[i] == 0) {
                     printf("name: <None>\n");
@@ -638,7 +644,7 @@ private:
                     printf("min z: %u\n", select_buffer[i + 1]);
                     printf("max z: %u\n", select_buffer[i + 2]);
                     if (select_buffer[i + 1] < minz) {
-                        minz = select_buffer[i + 1];
+                        minz        = select_buffer[i + 1];
                         selected_id = select_buffer[i + 3];
                     }
                     i += 3 + select_buffer[i];
@@ -694,7 +700,7 @@ private:
                 ImGui::Separator();
                 ImGui::Text("built-in materials");
                 // Manually wrapping
-                ImGuiStyle &style = ImGui::GetStyle();
+                ImGuiStyle &style               = ImGui::GetStyle();
                 constexpr size_t material_count = sizeof(materials) / sizeof(Material);
                 static std::vector<float> button_widths(material_count);
                 float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
@@ -703,7 +709,7 @@ private:
                     if (ImGui::Button(m.name)) {
                         material = m;
                     }
-                    button_widths[i] = ImGui::GetItemRectSize().x;
+                    button_widths[i]     = ImGui::GetItemRectSize().x;
                     float last_button_x2 = ImGui::GetItemRectMax().x;
                     // Expected position if next button was on same line
                     if (i + 1 < material_count) {

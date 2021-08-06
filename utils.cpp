@@ -13,7 +13,9 @@ using namespace std;
 
 namespace glss {
 
-static void eatline(std::istream &input) { input.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); }
+static void eatline(std::istream &input) {
+    input.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
 
 Mesh<> load_bunny_data(std::string_view obj_filename) {
     ifstream fin;
@@ -25,8 +27,8 @@ Mesh<> load_bunny_data(std::string_view obj_filename) {
 
     Mesh<> mesh;
     auto &vertices = mesh.vertices;
-    auto &faces = mesh.indices;
-    auto &normals = mesh.normals;
+    auto &faces    = mesh.indices;
+    auto &normals  = mesh.normals;
 
     // 开始读取文件
     string token;
@@ -71,7 +73,8 @@ Mesh<> load_bunny_data(std::string_view obj_filename) {
     return mesh;
 }
 
-template <typename T, typename A> static void push3(std::vector<T, A> &vertices, T x, T y, T z) {
+template <typename T, typename A>
+static void push3(std::vector<T, A> &vertices, T x, T y, T z) {
     vertices.push_back(x);
     vertices.push_back(y);
     vertices.push_back(z);
@@ -159,7 +162,7 @@ static GLuint load_shader(std::string_view shader_file, GLenum shader_type) {
 
     fin.seekg(0, ios_base::end);
     file_len = fin.tellg();
-    source = new GLchar[file_len];
+    source   = new GLchar[file_len];
     fin.seekg(0, ios_base::beg);
     fin.read(source, file_len);
 
@@ -185,7 +188,7 @@ static GLuint load_shader(std::string_view shader_file, GLenum shader_type) {
 }
 
 GLuint load_program(std::string_view vertex_shader_file, std::string_view fragment_shader_file) {
-    GLuint vertex_shader = load_shader(vertex_shader_file, GL_VERTEX_SHADER);
+    GLuint vertex_shader   = load_shader(vertex_shader_file, GL_VERTEX_SHADER);
     GLuint fragment_shader = load_shader(fragment_shader_file, GL_FRAGMENT_SHADER);
 
     GLuint program = glCreateProgram();

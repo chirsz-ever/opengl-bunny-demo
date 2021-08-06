@@ -4,3 +4,11 @@ IndentWidth: 4
 TabWidth: 4
 ColumnLimit: 120
 AccessModifierOffset: -4
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+#AlignArrayOfStructures: Right
+AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveMacros: AcrossComments
+AlignEscapedNewlines: Left
+AlwaysBreakTemplateDeclarations: Yes

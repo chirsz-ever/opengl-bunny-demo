@@ -46,11 +46,6 @@ static void print_glew_version() {
     printf("\t    run-time: %s\n", glewGetString(GLEW_VERSION));
 }
 
-// Degree to Radian
-inline float D2R(float degree) {
-    return glm::radians(degree);
-}
-
 struct LightSource {
     GLfloat ambient[4];  // 环境光
     GLfloat diffuse[4];  // 漫反射
@@ -563,11 +558,7 @@ private:
                 if (inViewPort(clicked_pos)) {
                     pitch_angle -= io.MouseDelta.y;
                 }
-                if (pitch_angle >= 360) {
-                    pitch_angle -= 360;
-                } else if (pitch_angle < 0) {
-                    pitch_angle += 360;
-                }
+                pitch_angle = glm::mod(pitch_angle, 360.0f);
             }
 
             // 点选
@@ -582,6 +573,20 @@ private:
             // 滚轮
             view_distance -= io.MouseWheel * 0.5f;
         }
+    }
+
+    void set_lookat() {
+        // 注意y轴朝上
+        auto p = glm::radians(pitch_angle);
+        glm::vec3 eye;
+        eye.x = view_distance * sqrt(0.5f) * sin(p);
+        eye.y = view_distance * cos(p);
+        eye.z = view_distance * sqrt(0.5f) * sin(p);
+
+        glm::vec3 up = glm::cross(eye, {1.0f, 0.0f, -1.0f});
+
+        mat_view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
+        glMultMatrixf(glm::value_ptr(mat_view));
     }
 
     // 执行选取
@@ -912,29 +917,6 @@ void mainLoop() {
 
         glfwSwapBuffers(window);
     }
-}
-
-void set_lookat() {
-    // 注意y轴朝上
-    float cop_x = view_distance * sqrt(0.5f) * sin(D2R(pitch_angle));
-    float cop_y = view_distance * cos(D2R(pitch_angle));
-    float cop_z = view_distance * sqrt(0.5f) * sin(D2R(pitch_angle));
-
-    float up[3] = {0.0f, 0.0f, 0.0f};
-    if (pitch_angle == 0) {
-        up[0] = up[2] = -1.0f;
-    } else if (pitch_angle == 180) {
-        up[0] = up[2] = 1.0f;
-    } else if (pitch_angle < 180) {
-        up[1] = 1.0f;
-    } else {
-        up[1] = -1.0f;
-    }
-
-    mat_view = glm::lookAt(glm::vec3(cop_x, cop_y, cop_z),
-                       glm::vec3(0.0f, 0.0f, 0.0f),
-                       glm::make_vec3(up));
-    glMultMatrixf(glm::value_ptr(mat_view));
 }
 
 void draw_model_select_vertex() {

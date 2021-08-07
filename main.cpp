@@ -339,8 +339,21 @@ private:
         const GLuint buffers[] = {VBO, IBO, NBO};
         glDeleteBuffers(std::end(buffers) - std::begin(buffers), buffers);
 
+        // 清除程序对象和 shader 对象
+        glUseProgram(0);
+        cleanup_program(program_simple);
+        cleanup_program(program_phong);
+
         glfwDestroyWindow(window);
         glfwTerminate();
+    }
+
+    static void cleanup_program(GLuint program) {
+        GLuint shaders[2];
+        glGetAttachedShaders(program, 2, nullptr, shaders);
+        glDeleteProgram(program);
+        glDeleteShader(shaders[0]);
+        glDeleteShader(shaders[1]);
     }
 
     // 光源及材质设置

@@ -489,7 +489,7 @@ private:
 
         auto mesh = genSolidSphere(0.05, 16, 16);
 
-        auto draw_light = [&](int i) {
+        auto draw_light = [&](size_t i) {
             glm::mat4 m = glm::translate(glm::identity<glm::mat4>(), glm::make_vec3(lights[i].position));
             glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
             glVertexAttrib4fv(2, lights[i].diffuse);
@@ -497,7 +497,7 @@ private:
             glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
         };
 
-        for (int i = 0; i < LIGHTS; ++i) {
+        for (size_t i = 0; i < LIGHTS; ++i) {
             draw_light(i);
         }
 
@@ -742,9 +742,9 @@ private:
                 }
                 ImGui::EndTabItem();
             }
-            for (int i = 0; i < LIGHTS; ++i) {
+            for (size_t i = 0; i < LIGHTS; ++i) {
                 char light_tabname[10];
-                sprintf(light_tabname, "Light%d", i);
+                sprintf(light_tabname, "Light%lu", i);
                 if (ImGui::BeginTabItem(light_tabname)) {
                     ImGui::ColorEdit4("ambient", lights[i].ambient);
                     ImGui::ColorEdit4("diffuse", lights[i].diffuse);

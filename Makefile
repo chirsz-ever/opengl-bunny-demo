@@ -10,13 +10,13 @@
 
 EXE = bunny-ui
 SOURCES = main.cpp utils.cpp
-IMGUI_SOURCES = imgui.cpp imgui_draw.cpp imgui_widgets.cpp imgui_demo.cpp
-IMGUI_SOURCES += imgui_impl_glfw.cpp imgui_impl_opengl2.cpp
+IMGUI_SOURCES = imgui.cpp imgui_draw.cpp imgui_widgets.cpp imgui_tables.cpp imgui_demo.cpp
+IMGUI_SOURCES += imgui_impl_glfw.cpp imgui_impl_opengl3.cpp
 OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 IMGUI_OBJS = $(patsubst %.cpp,imgui/%.o,$(IMGUI_SOURCES))
 UNAME_S := $(shell uname -s)
 
-CXXFLAGS = -Iimgui
+CXXFLAGS = -Iimgui -DIMGUI_IMPL_OPENGL_LOADER_GLEW
 CXXFLAGS += -Wall -Wformat -std=c++17
 
 ifeq ($(DEBUG), 1)

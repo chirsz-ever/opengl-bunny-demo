@@ -18,7 +18,7 @@
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl2.h"
+#include "imgui_impl_opengl3.h"
 
 #include "materials.h"
 #include "utils.h"
@@ -328,11 +328,11 @@ private:
 
         // Setup Platform/Renderer bindings
         ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL2_Init();
+        ImGui_ImplOpenGL3_Init();
     }
 
     void cleanup() {
-        ImGui_ImplOpenGL2_Shutdown();
+        ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
@@ -824,7 +824,7 @@ void mainLoop() {
         glfwPollEvents();
 
         // ImGUI preparation for the frame
-        ImGui_ImplOpenGL2_NewFrame();
+        ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
 
         // 更新状态
@@ -926,7 +926,7 @@ void mainLoop() {
 
         // 渲染 imgui
         glUseProgram(0);
-        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
     }

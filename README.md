@@ -2,9 +2,7 @@
 
 计算机图形学课程作业，用 OpenGL 渲染 Stanford Bunny 模型。
 
-使用的第三方库有 [Dear ImGui](https://github.com/ocornut/imgui)，[SDL2](https://www.libsdl.org/)，[GLEW](https://github.com/nigels-com/glew)。
-
-当前代码基于 OpenGL 2.1。
+使用的第三方库有 [Dear ImGui](https://github.com/ocornut/imgui)，[GLFW](https://www.glfw.org/)，[GLEW](https://github.com/nigels-com/glew)。
 
 模型数据来自 [Objects in OBJ format](https://www.prinmath.com/csci5229/OBJ/index.html)。
 
@@ -42,7 +40,8 @@ $ ./bunny-ui
   - [x] MSYS2
 - [x] 自定义 shader
 - [x] 面向对象重构
-- [ ] 升级 OpenGL 版本
+- [ ] 提供编译时配置选择使用 SDL2 或 GLFW
+- [ ] 升级 OpenGL 版本：可在运行时选择
   - [x] 使用 glm 代替 GLU 的矩阵变换函数
   - [x] 使用顶点属性向着色器传递数据
   - [ ] 使用 select mode 外的方式实现拾取

@@ -28,7 +28,11 @@ static void glfw_error_callback(int error, const char *description) {
 }
 
 static void print_opengl_info() {
-    printf("OpenGL version: %s\n", glGetString(GL_VERSION));
+    printf("OpenGL information:\n");
+    printf("\t  version: %s\n", glGetString(GL_VERSION));
+    printf("\t   vendor: %s\n", glGetString(GL_VENDOR));
+    printf("\t renderer: %s\n", glGetString(GL_RENDERER));
+    printf("\t     GLSL: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 }
 
 static void print_glfw_version() {

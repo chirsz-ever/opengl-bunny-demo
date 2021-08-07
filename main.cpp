@@ -483,19 +483,19 @@ private:
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BARRIER_BIT_EXT, 0);
 
-        glm::mat4 m = glm::translate(glm::identity<glm::mat4>(), glm::make_vec3(lights[0].position));
-        glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
-        glVertexAttrib4fv(2, lights[0].diffuse);
         auto mesh = genSolidSphere(0.05, 16, 16);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, mesh.vertices.data());
-        glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
 
-        m = glm::translate(glm::identity<glm::mat4>(), glm::make_vec3(lights[1].position));
-        glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
-        glVertexAttrib4fv(2, lights[0].diffuse);
-        mesh = genSolidSphere(0.05, 16, 16);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, mesh.vertices.data());
-        glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
+        auto draw_light = [&](int i) {
+            glm::mat4 m = glm::translate(glm::identity<glm::mat4>(), glm::make_vec3(lights[i].position));
+            glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
+            glVertexAttrib4fv(2, lights[i].diffuse);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, mesh.vertices.data());
+            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
+        };
+
+        for (int i = 0; i < LIGHTS; ++i) {
+            draw_light(i);
+        }
 
         glDisableVertexAttribArray(0);
     }

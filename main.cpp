@@ -485,7 +485,7 @@ private:
         glDisableVertexAttribArray(2);
         glUseProgram(program_simple);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BARRIER_BIT_EXT, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         auto mesh = genSolidSphere(0.05, 16, 16);
 
@@ -511,7 +511,7 @@ private:
         glDisableVertexAttribArray(2);
         glUseProgram(program_simple);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BARRIER_BIT_EXT, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glVertexAttrib3f(2, 0.0, 0.0, 0.0);
 
         auto mesh = genSolidSphere(0.01, 10, 10);

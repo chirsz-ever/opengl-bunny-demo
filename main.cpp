@@ -85,6 +85,9 @@ private:
     // 模型数据
     Mesh<> model;
 
+    // 顶点数组状态对象
+    GLuint VAO;
+
     // 缓冲区
     GLuint VBO, IBO, NBO;
 
@@ -205,6 +208,9 @@ private:
 
         print_glfw_version();
 
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_SAMPLES, 4);
         window = glfwCreateWindow(1200, 600, "Stanford Bunny", NULL, NULL);
@@ -251,6 +257,9 @@ private:
         VBO = buffers[0];
         IBO = buffers[1];
         NBO = buffers[2];
+
+        glGenVertexArrays(1, &VAO);
+        glBindVertexArray(VAO);
 
         // 顶点缓冲区对象
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -348,6 +357,8 @@ private:
         cleanup_program(program_simple);
         cleanup_program(program_phong);
 
+        glDeleteVertexArrays(1, &VAO);
+
         glfwDestroyWindow(window);
         glfwTerminate();
     }
@@ -435,14 +446,19 @@ private:
             {0.0, 1.0, -10.0}, {-1.0, 0.0, 10.0}, {-1.0, 0.0, -10.0}, {0.0, -1.0, 10.0}, {0.0, -1.0, -10.0},
         };
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, coord_lines);
+        GLuint vbo;
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(coord_lines), coord_lines, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
         glVertexAttrib3f(2, 0.f, 0.f, 0.f);
 
         glDrawArrays(GL_LINES, 0, sizeof(coord_lines) / sizeof(GLfloat) / 3);
 
         glDisableVertexAttribArray(0);
+        glDeleteBuffers(1, &vbo);
     }
 
     // 绘制模型线框
@@ -484,17 +500,30 @@ private:
         glEnableVertexAttribArray(0);
         glDisableVertexAttribArray(2);
         glUseProgram(program_simple);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
         auto mesh = genSolidSphere(0.05, 16, 16);
+
+        GLuint vbo, ibo;
+        GLuint buffers[2];
+        glGenBuffers(std::end(buffers) - std::begin(buffers), buffers);
+        vbo = buffers[0];
+        ibo = buffers[1];
+
+        // 顶点缓冲区对象
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(GLfloat), mesh.vertices.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        // 顶点索引缓冲区对象
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(GLuint), mesh.indices.data(),
+                     GL_STATIC_DRAW);
 
         auto draw_light = [&](size_t i) {
             glm::mat4 m = glm::translate(glm::identity<glm::mat4>(), glm::make_vec3(lights[i].position));
             glUniformMatrix4fv(uniform_locations.simple.model, 1, GL_FALSE, glm::value_ptr(m));
             glVertexAttrib4fv(2, lights[i].diffuse);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, mesh.vertices.data());
-            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, mesh.indices.data());
+            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, 0);
         };
 
         for (size_t i = 0; i < LIGHTS; ++i) {
@@ -502,6 +531,7 @@ private:
         }
 
         glDisableVertexAttribArray(0);
+        glDeleteBuffers(2, buffers);
     }
 
     // 强调被选中的顶点

@@ -75,6 +75,9 @@ run: all
 $(EXE): $(OBJS) $(IMGUI_OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
 
+main.o: utils.h materials.h
+utils.o: utils.h
+
 clean:
 	rm -f $(EXE) $(OBJS) imgui.ini
 

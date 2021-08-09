@@ -41,9 +41,11 @@ $ ./bunny-ui
 - [x] 自定义 shader
 - [x] 面向对象重构
 - [ ] 提供编译时配置选择使用 SDL2 或 GLFW
+- [ ] 使用 select mode 外的方式实现拾取
+- [ ] 使用 PolygonMode 外的方式实现线框绘制
 - [ ] 升级 OpenGL 版本：可在运行时选择
   - [x] 使用 glm 代替 GLU 的矩阵变换函数
   - [x] 使用顶点属性向着色器传递数据
-  - [ ] 使用 select mode 外的方式实现拾取
-  - [ ] OpenGL 3.2 core profile
+  - [x] OpenGL 3.2 core profile
   - [ ] OpenGL ES 2.0
+  - [ ] 包装绘制对象，切分定点属性设置步骤

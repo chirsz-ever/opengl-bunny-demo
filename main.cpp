@@ -431,7 +431,6 @@ private:
     }
 
     // 画坐标轴
-    // TODO: 使用顶点缓存
     void draw_coordinate() {
         glEnableVertexAttribArray(0);
         glDisableVertexAttribArray(2);

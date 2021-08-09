@@ -211,6 +211,7 @@ private:
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_SAMPLES, 4);
         window = glfwCreateWindow(1200, 600, "Stanford Bunny", NULL, NULL);
@@ -239,14 +240,14 @@ private:
         print_glew_version();
 
         // Phong 光照模型
-        program_phong = load_program("shaders/phong.vert", "shaders/phong.frag");
+        program_phong = load_program("shaders/phong.150.vert", "shaders/phong.150.frag");
         glBindAttribLocation(program_phong, 0, "position");
         glBindAttribLocation(program_phong, 1, "normal");
         glLinkProgram(program_phong);
         get_phong_uniform_locations();
 
         // 简单着色器
-        program_simple = load_program("shaders/simple.vert", "shaders/simple.frag");
+        program_simple = load_program("shaders/simple.150.vert", "shaders/simple.150.frag");
         glBindAttribLocation(program_simple, 0, "position");
         glBindAttribLocation(program_simple, 2, "color");
         glLinkProgram(program_simple);

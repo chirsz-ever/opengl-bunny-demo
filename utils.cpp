@@ -84,7 +84,7 @@ Mesh<> genSolidSphere(GLfloat radius, GLint slices, GLint stacks) {
     GLfloat step_la = M_PI / stacks;
     GLfloat step_lo = 2.0f * M_PI / slices;
 
-    std::pmr::vector<GLfloat> vertices, normals;
+    Vector<GLfloat> vertices, normals;
     vertices.reserve(slices * (stacks - 1) * 3 + 6);
     normals.reserve(slices * (stacks - 1) * 3 + 6);
 
@@ -109,7 +109,7 @@ Mesh<> genSolidSphere(GLfloat radius, GLint slices, GLint stacks) {
     push3(vertices, 0.0f, 0.0f, -radius);
     push3(normals, 0.0f, 0.0f, -1.0f);
 
-    std::pmr::vector<GLuint> indices;
+    Vector<GLuint> indices;
     indices.reserve(slices * stacks * 3);
 
     for (int i = 0; i < stacks - 2; ++i) {

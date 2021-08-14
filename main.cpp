@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <GL/glew.h>
+#include <GLES2/gl2.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -44,11 +44,15 @@ static void print_glfw_version() {
     printf("\t    run-time: %d.%d.%d\n", major, minor, rev);
 }
 
-static void print_glew_version() {
+#ifdef CHIRSZ_USE_GLEW
+static void print_loader_version() {
     printf("GLEW version:\n");
     printf("\tcompile-time: %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
     printf("\t    run-time: %s\n", glewGetString(GLEW_VERSION));
 }
+#else
+static void print_loader_version() {}
+#endif
 
 struct LightSource {
     GLfloat ambient[4];  // 环境光
@@ -184,7 +188,7 @@ private:
     ImVec2 lb_press_pos;            // 左键按下的位置
     bool select_dispaly = false;    // 强调显示被选取的对象
     GLint selected_id;              // 被选择的对象在数组中开始位置
-    GLdouble select_radius = 1.0f;  // 选择视口的半径
+    GLfloat select_radius = 1.0f;  // 选择视口的半径
     bool pick_sucess       = false; // 在本帧中进行拾取且成功
 
     // 视口参数
@@ -208,10 +212,9 @@ private:
 
         print_glfw_version();
 
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
         glfwWindowHint(GLFW_VISIBLE, GL_FALSE);
         glfwWindowHint(GLFW_SAMPLES, 4);
         window = glfwCreateWindow(1200, 600, "Stanford Bunny", NULL, NULL);
@@ -229,25 +232,17 @@ private:
 
         print_opengl_info();
 
-        // Setup GLEW
-        // glewExperimental = GL_TRUE;
-        GLenum err = glewInit();
-        if (err != GLEW_OK) {
-            std::string glewErrorString = (const char *)glewGetErrorString(err);
-            throw std::runtime_error("glew init failed: " + glewErrorString);
-        }
-
-        print_glew_version();
+        print_loader_version();
 
         // Phong 光照模型
-        program_phong = load_program("shaders/phong.150.vert", "shaders/phong.150.frag");
+        program_phong = load_program("shaders/phong.100.vert", "shaders/phong.100.frag");
         glBindAttribLocation(program_phong, 0, "position");
         glBindAttribLocation(program_phong, 1, "normal");
         glLinkProgram(program_phong);
         get_phong_uniform_locations();
 
         // 简单着色器
-        program_simple = load_program("shaders/simple.150.vert", "shaders/simple.150.frag");
+        program_simple = load_program("shaders/simple.100.vert", "shaders/simple.100.frag");
         glBindAttribLocation(program_simple, 0, "position");
         glBindAttribLocation(program_simple, 2, "color");
         glLinkProgram(program_simple);
@@ -259,8 +254,8 @@ private:
         IBO = buffers[1];
         NBO = buffers[2];
 
-        glGenVertexArrays(1, &VAO);
-        glBindVertexArray(VAO);
+        // glGenVertexArrays(1, &VAO);
+        // glBindVertexArray(VAO);
 
         // 顶点缓冲区对象
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -328,7 +323,7 @@ private:
     }
 
     void model_transform() {
-        glMultMatrixf(glm::value_ptr(mat_model));
+        // glMultMatrixf(glm::value_ptr(mat_model));
     }
 
     void initImgui() {
@@ -358,7 +353,7 @@ private:
         cleanup_program(program_simple);
         cleanup_program(program_phong);
 
-        glDeleteVertexArrays(1, &VAO);
+        // glDeleteVertexArrays(1, &VAO);
 
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -467,7 +462,7 @@ private:
         // 需要禁用索引为 2 的顶点属性数组，否则绘制函数会认为
         // 定点属性数据被 glVertexAttribPointer 指定，而 glVertexAttrib 无用
         glDisableVertexAttribArray(2);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         if (show_back_wire) {
             glDisable(GL_CULL_FACE);
         }
@@ -486,7 +481,7 @@ private:
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glDisableVertexAttribArray(0);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         if (show_back_wire) {
             glEnable(GL_CULL_FACE);
         }
@@ -631,78 +626,78 @@ private:
         glm::vec3 up = glm::cross(eye, {1.0f, 0.0f, -1.0f});
 
         mat_view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
-        glMultMatrixf(glm::value_ptr(mat_view));
+        // glMultMatrixf(glm::value_ptr(mat_view));
     }
 
     // 执行选取
     // TODO: 使用软件实现
     void do_select() {
-        ImGuiIO &io = ImGui::GetIO();
-        glUseProgram(0);
-        glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
-        glRenderMode(GL_SELECT);
+    //     ImGuiIO &io = ImGui::GetIO();
+    //     glUseProgram(0);
+    //     glSelectBuffer(SELECT_BUF_SIZE, select_buffer);
+    //     glRenderMode(GL_SELECT);
 
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+    //     glMatrixMode(GL_PROJECTION);
+    //     glPushMatrix();
 
-        glm::mat4 proj = glm::pickMatrix(glm::vec2(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y),
-                                         glm::vec2(select_radius * 2, select_radius * 2),
-                                         glm::vec4(viewport.x, viewport.y, viewport.w, viewport.h));
-        proj *= glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 20.0f);
-        glLoadMatrixf(glm::value_ptr(proj));
+    //     glm::mat4 proj = glm::pickMatrix(glm::vec2(lb_press_pos.x, io.DisplaySize.y - lb_press_pos.y),
+    //                                      glm::vec2(select_radius * 2, select_radius * 2),
+    //                                      glm::vec4(viewport.x, viewport.y, viewport.w, viewport.h));
+    //     proj *= glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 20.0f);
+    //     glLoadMatrixf(glm::value_ptr(proj));
 
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-        set_lookat();
+    //     glMatrixMode(GL_MODELVIEW);
+    //     glPushMatrix();
+    //     glLoadIdentity();
+    //     set_lookat();
 
-        // 绘制模型
-        switch (select_mode) {
-        case SELECT_VERTEX:
-            draw_model_select_vertex();
-            break;
-        case SELECT_FACE:
-            draw_model_select_face();
-            break;
-        }
+    //     // 绘制模型
+    //     switch (select_mode) {
+    //     case SELECT_VERTEX:
+    //         draw_model_select_vertex();
+    //         break;
+    //     case SELECT_FACE:
+    //         draw_model_select_face();
+    //         break;
+    //     }
 
-        // 恢复先前矩阵
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+    //     // 恢复先前矩阵
+    //     glMatrixMode(GL_MODELVIEW);
+    //     glPopMatrix();
+    //     glMatrixMode(GL_PROJECTION);
+    //     glPopMatrix();
 
-        // 回到渲染模式并得到选中物体的数目
-        GLint hits = glRenderMode(GL_RENDER);
-        printf("hits: %d\n", hits);
-        if (hits >= 1) {
-            GLuint minz = select_buffer[1];
-            selected_id = select_buffer[3];
-            size_t i    = 0;
-            for (GLint n = 0; n < hits; ++n) {
-                if (select_buffer[i] == 0) {
-                    printf("name: <None>\n");
-                    printf("min z: %u\n", select_buffer[i + 1]);
-                    printf("max z: %u\n", select_buffer[i + 2]);
-                    i += 3;
-                } else {
-                    printf("name: ");
-                    for (GLuint m = i + 3; m < i + 3 + select_buffer[i]; ++m) {
-                        printf("%u ", select_buffer[m]);
-                    }
-                    printf("\n");
-                    printf("min z: %u\n", select_buffer[i + 1]);
-                    printf("max z: %u\n", select_buffer[i + 2]);
-                    if (select_buffer[i + 1] < minz) {
-                        minz        = select_buffer[i + 1];
-                        selected_id = select_buffer[i + 3];
-                    }
-                    i += 3 + select_buffer[i];
-                }
-            }
-            pick_sucess = true;
-            printf("selected id: %d\n", selected_id);
-        }
+    //     // 回到渲染模式并得到选中物体的数目
+    //     GLint hits = glRenderMode(GL_RENDER);
+    //     printf("hits: %d\n", hits);
+    //     if (hits >= 1) {
+    //         GLuint minz = select_buffer[1];
+    //         selected_id = select_buffer[3];
+    //         size_t i    = 0;
+    //         for (GLint n = 0; n < hits; ++n) {
+    //             if (select_buffer[i] == 0) {
+    //                 printf("name: <None>\n");
+    //                 printf("min z: %u\n", select_buffer[i + 1]);
+    //                 printf("max z: %u\n", select_buffer[i + 2]);
+    //                 i += 3;
+    //             } else {
+    //                 printf("name: ");
+    //                 for (GLuint m = i + 3; m < i + 3 + select_buffer[i]; ++m) {
+    //                     printf("%u ", select_buffer[m]);
+    //                 }
+    //                 printf("\n");
+    //                 printf("min z: %u\n", select_buffer[i + 1]);
+    //                 printf("max z: %u\n", select_buffer[i + 2]);
+    //                 if (select_buffer[i + 1] < minz) {
+    //                     minz        = select_buffer[i + 1];
+    //                     selected_id = select_buffer[i + 3];
+    //                 }
+    //                 i += 3 + select_buffer[i];
+    //             }
+    //         }
+    //         pick_sucess = true;
+    //         printf("selected id: %d\n", selected_id);
+    //     }
     }
 
     // UI 设计代码
@@ -738,7 +733,7 @@ private:
                     static int radius_i = select_radius * 2;
                     sprintf(current_radius, "%.1lf", select_radius);
                     ImGui::SliderInt("Select Radius", &radius_i, 1, 20, current_radius);
-                    select_radius = (GLdouble)radius_i / 2;
+                    select_radius = (GLfloat)radius_i / 2;
                 }
                 ImGui::EndTabItem();
             }
@@ -899,15 +894,15 @@ void mainLoop() {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
 
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        // glMatrixMode(GL_PROJECTION);
+        // glPushMatrix();
 
         mat_proj = glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 1000.0f);
-        glLoadMatrixf(glm::value_ptr(mat_proj));
+        // glLoadMatrixf(glm::value_ptr(mat_proj));
 
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
+        // glMatrixMode(GL_MODELVIEW);
+        // glPushMatrix();
+        // glLoadIdentity();
         set_lookat();
 
         // 光源及材质设置
@@ -917,7 +912,7 @@ void mainLoop() {
         set_simple_uniform();
 
         // 保存视图矩阵
-        glPushMatrix();
+        // glPushMatrix();
 
         if (draw_coord) {
             draw_coordinate();
@@ -948,11 +943,11 @@ void mainLoop() {
         // 还原状态
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
-        glPopMatrix();
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        // glMatrixMode(GL_MODELVIEW);
+        // glPopMatrix();
+        // glPopMatrix();
+        // glMatrixMode(GL_PROJECTION);
+        // glPopMatrix();
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
@@ -965,34 +960,34 @@ void mainLoop() {
 }
 
 void draw_model_select_vertex() {
-    model_transform();
+    // model_transform();
 
-    glInitNames();
-    glPushName(-1);
-    auto vd = model.vertices.data();
-    for (size_t v = 0; v < model.vertices.size(); v += 3) {
-        glLoadName(v);
-        glBegin(GL_POINTS);
-        glVertex3fv(vd + v);
-        glEnd();
-    }
+    // glInitNames();
+    // glPushName(-1);
+    // auto vd = model.vertices.data();
+    // for (size_t v = 0; v < model.vertices.size(); v += 3) {
+    //     glLoadName(v);
+    //     glBegin(GL_POINTS);
+    //     glVertex3fv(vd + v);
+    //     glEnd();
+    // }
 }
 
 void draw_model_select_face() {
-    model_transform();
+    // model_transform();
 
-    glInitNames();
-    glPushName(-1);
-    auto vd = model.vertices.data();
-    auto fd = model.indices.data();
-    for (size_t f = 0; f < model.indices.size(); f += 3) {
-        glLoadName(f);
-        glBegin(GL_TRIANGLES);
-        glVertex3fv(vd + fd[f] * 3);
-        glVertex3fv(vd + fd[f + 1] * 3);
-        glVertex3fv(vd + fd[f + 2] * 3);
-        glEnd();
-    }
+    // glInitNames();
+    // glPushName(-1);
+    // auto vd = model.vertices.data();
+    // auto fd = model.indices.data();
+    // for (size_t f = 0; f < model.indices.size(); f += 3) {
+    //     glLoadName(f);
+    //     glBegin(GL_TRIANGLES);
+    //     glVertex3fv(vd + fd[f] * 3);
+    //     glVertex3fv(vd + fd[f + 1] * 3);
+    //     glVertex3fv(vd + fd[f + 2] * 3);
+    //     glEnd();
+    // }
 }
 };
 

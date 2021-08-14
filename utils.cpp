@@ -1,4 +1,4 @@
-#include <GL/glew.h>
+#include <GLES2/gl2.h>
 
 #include "utils.h"
 

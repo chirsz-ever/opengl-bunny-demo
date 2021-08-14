@@ -16,8 +16,8 @@ OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 IMGUI_OBJS = $(patsubst %.cpp,imgui/%.o,$(IMGUI_SOURCES))
 UNAME_S := $(shell uname -s)
 
-CXXFLAGS = -Iimgui -DIMGUI_IMPL_OPENGL_LOADER_GLEW
-CXXFLAGS += -Wall -Wformat -std=c++17
+CXXFLAGS = -Iimgui -DIMGUI_IMPL_OPENGL_ES2
+CXXFLAGS += -g -Wall -Wformat -std=c++17
 
 ifeq ($(DEBUG), 1)
 	CXXFLAGS += -g

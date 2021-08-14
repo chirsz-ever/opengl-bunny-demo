@@ -467,10 +467,9 @@ private:
         // 需要禁用索引为 2 的顶点属性数组，否则绘制函数会认为
         // 定点属性数据被 glVertexAttribPointer 指定，而 glVertexAttrib 无用
         glDisableVertexAttribArray(2);
-        glPolygonMode(GL_FRONT, GL_LINE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         if (show_back_wire) {
             glDisable(GL_CULL_FACE);
-            glPolygonMode(GL_BACK, GL_LINE);
         }
         glUseProgram(program_simple);
         SET_SIMPLE_UNIFORM_MAT4(model);
@@ -487,10 +486,9 @@ private:
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glDisableVertexAttribArray(0);
-        glPolygonMode(GL_FRONT, GL_FILL);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         if (show_back_wire) {
             glEnable(GL_CULL_FACE);
-            glPolygonMode(GL_BACK, GL_FILL);
         }
     }
 

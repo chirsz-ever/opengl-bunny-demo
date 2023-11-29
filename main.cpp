@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <GL/glew.h>
+#include <OpenGL/gl3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,9 +16,9 @@
 
 #include <GLFW/glfw3.h>
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 
 #include "materials.h"
 #include "utils.h"
@@ -44,10 +44,67 @@ static void print_glfw_version() {
     printf("\t    run-time: %d.%d.%d\n", major, minor, rev);
 }
 
-static void print_glew_version() {
+static void print_extra() {
+#ifdef GLEW_VERSION
     printf("GLEW version:\n");
     printf("\tcompile-time: %d.%d.%d\n", GLEW_VERSION_MAJOR, GLEW_VERSION_MINOR, GLEW_VERSION_MICRO);
     printf("\t    run-time: %s\n", glewGetString(GLEW_VERSION));
+#endif
+    {
+        int num_ct_formats;
+        glGetIntegerv(GL_NUM_COMPRESSED_TEXTURE_FORMATS, &num_ct_formats);
+        assert(glGetError() == GL_NO_ERROR);
+        std::vector<GLint> ct_formats;
+        ct_formats.resize(num_ct_formats);
+        glGetIntegerv(GL_COMPRESSED_TEXTURE_FORMATS, ct_formats.data());
+        assert(glGetError() == GL_NO_ERROR);
+
+        printf("GL_NUM_PROGRAM_BINARY_FORMATS: %d\n", num_ct_formats);
+        if (num_ct_formats > 0) {
+            printf("GL_COMPRESSED_TEXTURE_FORMATS:\n");
+            for (int i = 0; i < num_ct_formats; ++i) {
+                printf("    0x%04x\n", ct_formats[i]);
+            }
+        }
+    }
+#ifdef GL_PROGRAM_BINARY_FORMATS
+    {
+        GLint num_formats = 0;
+        glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &num_formats);
+        assert(glGetError() == GL_NO_ERROR);
+        std::vector<GLint> formats;
+        formats.resize(num_formats);
+        glGetIntegerv(GL_PROGRAM_BINARY_FORMATS, formats.data());
+        assert(glGetError() == GL_NO_ERROR);
+
+        printf("GL_NUM_PROGRAM_BINARY_FORMATS: %d\n", num_formats);
+        if (num_formats > 0) {
+            printf("GL_PROGRAM_BINARY_FORMATS:\n");
+            for (int i = 0; i < num_formats; ++i) {
+                printf("    0x%04x\n", formats[i]);
+            }
+        }
+    }
+#endif
+#ifdef GL_SHADER_BINARY_FORMATS
+    {
+        GLint num_formats = 0;
+        glGetIntegerv(GL_NUM_SHADER_BINARY_FORMATS, &num_formats);
+        assert(glGetError() == GL_NO_ERROR);
+        std::vector<GLint> formats;
+        formats.resize(num_formats);
+        glGetIntegerv(GL_SHADER_BINARY_FORMATS, formats.data());
+        assert(glGetError() == GL_NO_ERROR);
+
+        printf("GL_NUM_SHADER_BINARY_FORMATS: %d\n", num_formats);
+        if (num_formats > 0) {
+            printf("GL_SHADER_BINARY_FORMATS:\n");
+            for (int i = 0; i < num_formats; ++i) {
+                printf("    0x%04x\n", formats[i]);
+            }
+        }
+    }
+#endif
 }
 
 struct LightSource {
@@ -231,13 +288,13 @@ private:
 
         // Setup GLEW
         // glewExperimental = GL_TRUE;
-        GLenum err = glewInit();
-        if (err != GLEW_OK) {
-            std::string glewErrorString = (const char *)glewGetErrorString(err);
-            throw std::runtime_error("glew init failed: " + glewErrorString);
-        }
+        // GLenum err = glewInit();
+        // if (err != GLEW_OK) {
+        //     std::string glewErrorString = (const char *)glewGetErrorString(err);
+        //     throw std::runtime_error("glew init failed: " + glewErrorString);
+        // }
 
-        print_glew_version();
+        print_extra();
 
         // Phong 光照模型
         program_phong = load_program("shaders/phong.150.vert", "shaders/phong.150.frag");
@@ -259,8 +316,10 @@ private:
         IBO = buffers[1];
         NBO = buffers[2];
 
+#if ENABLE_VAO
         glGenVertexArrays(1, &VAO);
         glBindVertexArray(VAO);
+#endif
 
         // 顶点缓冲区对象
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -327,10 +386,6 @@ private:
         mat_model = glm::translate(mat_model, glm::vec3{0.0f, -0.5f, 0.0f});
     }
 
-    void model_transform() {
-        glMultMatrixf(glm::value_ptr(mat_model));
-    }
-
     void initImgui() {
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
@@ -358,7 +413,9 @@ private:
         cleanup_program(program_simple);
         cleanup_program(program_phong);
 
+#if ENABLE_VAO
         glDeleteVertexArrays(1, &VAO);
+#endif
 
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -631,9 +688,9 @@ private:
         glm::vec3 up = glm::cross(eye, {1.0f, 0.0f, -1.0f});
 
         mat_view = glm::lookAt(eye, glm::vec3(0.0f, 0.0f, 0.0f), up);
-        glMultMatrixf(glm::value_ptr(mat_view));
     }
 
+#if ENABLE_GL_SELECT
     // 执行选取
     // TODO: 使用软件实现
     void do_select() {
@@ -655,6 +712,7 @@ private:
         glPushMatrix();
         glLoadIdentity();
         set_lookat();
+        glMultMatrixf(glm::value_ptr(mat_view));
 
         // 绘制模型
         switch (select_mode) {
@@ -704,6 +762,43 @@ private:
             printf("selected id: %d\n", selected_id);
         }
     }
+
+    void draw_model_select_vertex() {
+        model_transform();
+
+        glInitNames();
+        glPushName(-1);
+        auto vd = model.vertices.data();
+        for (size_t v = 0; v < model.vertices.size(); v += 3) {
+            glLoadName(v);
+            glBegin(GL_POINTS);
+            glVertex3fv(vd + v);
+            glEnd();
+        }
+    }
+
+    void draw_model_select_face() {
+        model_transform();
+
+        glInitNames();
+        glPushName(-1);
+        auto vd = model.vertices.data();
+        auto fd = model.indices.data();
+        for (size_t f = 0; f < model.indices.size(); f += 3) {
+            glLoadName(f);
+            glBegin(GL_TRIANGLES);
+            glVertex3fv(vd + fd[f] * 3);
+            glVertex3fv(vd + fd[f + 1] * 3);
+            glVertex3fv(vd + fd[f + 2] * 3);
+            glEnd();
+        }
+    }
+
+    void model_transform() {
+        glMultMatrixf(glm::value_ptr(mat_model));
+    }
+
+#endif
 
     // UI 设计代码
     void design_gui() {
@@ -875,11 +970,13 @@ void mainLoop() {
         // 设置模型姿态
         set_model_transform();
 
+#if ENABLE_GL_SELECT
         // 拾取模式
         pick_sucess = false;
         if (lb_clicked && select_mode != SELECT_NONE) {
             do_select();
         }
+#endif
 
         // Start the Dear ImGui frame
         ImGui::NewFrame();
@@ -899,15 +996,7 @@ void mainLoop() {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
 
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-
         mat_proj = glm::perspective(glm::radians(fovy), 1.0f, 0.1f, 1000.0f);
-        glLoadMatrixf(glm::value_ptr(mat_proj));
-
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
         set_lookat();
 
         // 光源及材质设置
@@ -916,8 +1005,20 @@ void mainLoop() {
         // 简单着色器参数设置
         set_simple_uniform();
 
+#if ENABLE_GL_SELECT
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+
+        glLoadMatrixf(glm::value_ptr(mat_proj));
+
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+        glMultMatrixf(glm::value_ptr(mat_view));
+
         // 保存视图矩阵
         glPushMatrix();
+#endif
 
         if (draw_coord) {
             draw_coordinate();
@@ -928,6 +1029,13 @@ void mainLoop() {
             draw_wire_model();
         } else {
             draw_model();
+        }
+
+        int e = glGetError();
+        if (e != GL_NO_ERROR)
+        {
+            fprintf(stderr, "OpenGL error: %d\n", e);
+            assert(0);
         }
 
         // 指出光源位置
@@ -948,50 +1056,21 @@ void mainLoop() {
         // 还原状态
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+#if ENABLE_GL_SELECT
         glMatrixMode(GL_MODELVIEW);
         glPopMatrix();
         glPopMatrix();
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+#endif
 
         // 渲染 imgui
         glUseProgram(0);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(window);
-    }
-}
-
-void draw_model_select_vertex() {
-    model_transform();
-
-    glInitNames();
-    glPushName(-1);
-    auto vd = model.vertices.data();
-    for (size_t v = 0; v < model.vertices.size(); v += 3) {
-        glLoadName(v);
-        glBegin(GL_POINTS);
-        glVertex3fv(vd + v);
-        glEnd();
-    }
-}
-
-void draw_model_select_face() {
-    model_transform();
-
-    glInitNames();
-    glPushName(-1);
-    auto vd = model.vertices.data();
-    auto fd = model.indices.data();
-    for (size_t f = 0; f < model.indices.size(); f += 3) {
-        glLoadName(f);
-        glBegin(GL_TRIANGLES);
-        glVertex3fv(vd + fd[f] * 3);
-        glVertex3fv(vd + fd[f + 1] * 3);
-        glVertex3fv(vd + fd[f + 2] * 3);
-        glEnd();
     }
 }
 };

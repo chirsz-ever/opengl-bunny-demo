@@ -16,7 +16,7 @@ OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 IMGUI_OBJS = $(patsubst %.cpp,imgui/%.o,$(IMGUI_SOURCES))
 UNAME_S := $(shell uname -s)
 
-CXXFLAGS = -Iimgui -DIMGUI_IMPL_OPENGL_LOADER_GLEW
+CXXFLAGS = -Iimgui -DIMGUI_IMPL_OPENGL_LOADER_CUSTOM="<OpenGL/gl3.h>" -DGL_SILENCE_DEPRECATION -DENABLE_VAO
 CXXFLAGS += -Wall -Wformat -std=c++17
 
 ifeq ($(DEBUG), 1)
@@ -39,7 +39,6 @@ endif
 
 ifeq ($(UNAME_S), Darwin) #APPLE
 	ECHO_MESSAGE = "Mac OS X"
-	LIBS = -lGLEW
 	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 	LIBS += -L/usr/local/lib -L/opt/local/lib
 	LIBS += -lglfw

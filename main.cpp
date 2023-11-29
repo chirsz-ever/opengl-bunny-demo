@@ -736,7 +736,7 @@ private:
                 {
                     char current_radius[32];
                     static int radius_i = select_radius * 2;
-                    sprintf(current_radius, "%.1lf", select_radius);
+                    snprintf(current_radius, 32, "%.1lf", select_radius);
                     ImGui::SliderInt("Select Radius", &radius_i, 1, 20, current_radius);
                     select_radius = (GLdouble)radius_i / 2;
                 }
@@ -772,7 +772,7 @@ private:
             }
             for (size_t i = 0; i < LIGHTS; ++i) {
                 char light_tabname[10];
-                sprintf(light_tabname, "Light%lu", i);
+                snprintf(light_tabname, 10, "Light%lu", i);
                 if (ImGui::BeginTabItem(light_tabname)) {
                     ImGui::ColorEdit4("ambient", lights[i].ambient);
                     ImGui::ColorEdit4("diffuse", lights[i].diffuse);
